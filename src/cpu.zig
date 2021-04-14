@@ -16,21 +16,15 @@ const StatusFlag = enum(u8) {
 };
 
 pub const CPU = struct {
-    A: u8,
-    X: u8,
-    Y: u8,
-    status: u8,
+    A: u8 = 0x00,
+    X: u8 = 0x00,
+    Y: u8 = 0x00,
+    status: u8 = 0x00,
     SP: u8 = 0xFF, // stack pointer
-    PC: u16, // program counter
+    PC: u16 = 0x0000, // program counter
 
     pub fn init() CPU {
-        return CPU{
-            .A = 0,
-            .X = 0,
-            .Y = 0,
-            .status = 0,
-            .PC = 0,
-        };
+        return CPU{};
     }
 
     pub fn interpret(self: *CPU, commands: []const u8) void {
@@ -70,14 +64,16 @@ pub const CPU = struct {
     }
 };
 
-pub fn main() !void {
-    //
-}
-
 test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
     cpu.interpret(&[_]u8{ 0xA9, 0x05, 0x00 });
     expect(cpu.A == 0x05);
     assert(cpu.status & 0b0000_0010 == 0b00);
     assert(cpu.status & 0b1000_0000 == 0);
+}
+
+test "0xA9_LDA_zero_flag" {
+    var cpu = CPU.init();
+    cpu.interpret(&[_]u8{ 0xA9, 0x00, 0x00 });
+    assert(cpu.status & 0b0000_0010 == 0b10);
 }
