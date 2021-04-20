@@ -1,8 +1,4 @@
 const std = @import("std");
-const expect = std.testing.expect;
-const assert = std.debug.assert;
-
-const print = @import("std").debug.print;
 
 const Bus = @import("bus.zig").Bus;
 
@@ -18,27 +14,40 @@ const StatusFlag = enum(u8) {
 };
 
 pub const CPU = struct {
-    A: u8 = 0x00,
-    X: u8 = 0x00,
-    Y: u8 = 0x00,
+    register_a: u8 = 0x00,
+    register_x: u8 = 0x00,
     status: u8 = 0x00,
-    SP: u8 = 0xFF, // stack pointer
-    PC: u16 = 0x0000, // program counter
+    stack_pointer: u8 = 0xFF,
+    program_counter: u16 = 0x0000,
+    memory: [0xFFFF]u8 = [_]u8{0} ** 0xFFFF, //TODO: make separate struct later
 
     pub fn init() CPU {
         return CPU{};
     }
 
-    pub fn interpret(self: *CPU, commands: []const u8) void {
-        self.PC = 0;
+    pub fn loadAndRun(self: *CPU, commands: []const u8) void {
+        self.load(commands);
+        self.run();
+    }
 
-        for (commands) |value| {
-            self.PC += 1;
+    fn load(self: *CPU, commands: []const u8) void {
+        std.mem.copy(u8, self.memory[0x8000 .. 0x8000 + commands.len], commands[0..commands.len]);
+        self.program_counter = 0x8000;
+    }
 
-            switch (value) {
+    fn memoryRead(self: *CPU, address: u16) u8 {
+        return self.memory[address];
+    }
+
+    fn run(self: *CPU) void {
+        while (self.program_counter < 0x8010) { //FIXME: remove magic number
+            const opcode = self.memoryRead(self.program_counter);
+            self.program_counter += 1;
+
+            switch (opcode) {
                 0xA9 => { // LDA
-                    const param = commands[self.PC];
-                    self.PC += 1;
+                    const param = self.memoryRead(self.program_counter);
+                    self.program_counter += 1;
 
                     self.lda(param);
                 },
@@ -54,8 +63,7 @@ pub const CPU = struct {
                 0x00 => { // BRK
                     return;
                 },
-
-                else => {
+                else => { // unknown instruction or already used data
                     continue;
                 },
             }
@@ -84,57 +92,62 @@ pub const CPU = struct {
     }
 
     fn lda(self: *CPU, value: u8) void {
-        self.A = value;
-        self.updateZeroAndNegativeFlag(self.A);
+        self.register_a = value;
+        self.updateZeroAndNegativeFlag(self.register_a);
     }
 
     fn tax(self: *CPU) void {
-        self.X = self.A;
-        self.updateZeroAndNegativeFlag(self.X);
+        self.register_x = self.register_a;
+        self.updateZeroAndNegativeFlag(self.register_x);
     }
 
     fn inx(self: *CPU) void {
-        self.X +%= 1;
-        self.updateZeroAndNegativeFlag(self.X);
+        self.register_x +%= 1;
+        self.updateZeroAndNegativeFlag(self.register_x);
     }
 };
 
 test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
-    cpu.interpret(&[_]u8{ 0xA9, 0x05, 0x00 });
-    expect(cpu.A == 0x05);
-    assert(cpu.status & 0b0000_0010 == 0b00);
-    assert(cpu.status & 0b1000_0000 == 0);
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x00 });
+    std.testing.expect(cpu.register_a == 0x05);
+    std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
+    std.debug.assert(cpu.status & 0b1000_0000 == 0);
 }
 
 test "0xA9_LDA_zero_flag" {
     var cpu = CPU.init();
-    cpu.interpret(&[_]u8{ 0xA9, 0x00, 0x00 });
-    assert(cpu.status & 0b0000_0010 == 0b10);
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0x00, 0x00 });
+    std.debug.assert(cpu.status & 0b0000_0010 == 0b10);
 }
 
 test "0xA9_LDA_negative_flag" {
     var cpu = CPU.init();
-    cpu.interpret(&[_]u8{ 0xa9, 0xff, 0x00 });
-    assert(cpu.status & 0b1000_0000 == 0b1000_0000);
+    cpu.loadAndRun(&[_]u8{ 0xa9, 0xff, 0x00 });
+    std.debug.assert(cpu.status & 0b1000_0000 == 0b1000_0000);
 }
 
 test "0xAA_TAX_move_a_to_x" {
     var cpu = CPU.init();
-    cpu.A = 10;
-    cpu.interpret(&[_]u8{ 0xAA, 0x00 });
-    expect(cpu.X == 10);
+    cpu.register_a = 10;
+    cpu.loadAndRun(&[_]u8{ 0xAA, 0x00 });
+    std.testing.expect(cpu.register_x == 10);
 }
 
 test "INX_overflow" {
     var cpu = CPU.init();
-    cpu.X = 0xFF;
-    cpu.interpret(&[_]u8{ 0xE8, 0xE8, 0x00 });
-    expect(cpu.X == 1);
+    cpu.register_x = 0xFF;
+    cpu.loadAndRun(&[_]u8{ 0xE8, 0xE8, 0x00 });
+    std.testing.expect(cpu.register_x == 1);
 }
 
 test "5_ops_working_together" {
     var cpu = CPU.init();
-    cpu.interpret(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
-    expect(cpu.X == 0xc1);
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
+    std.testing.expect(cpu.register_x == 0xc1);
+}
+
+test "load_and_run" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
 }
