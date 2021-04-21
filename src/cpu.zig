@@ -1,6 +1,7 @@
 const std = @import("std");
 
-const Bus = @import("bus.zig").Bus;
+const RAM = @import("ram.zig").RAM;
+const AddressingMode = @import("opcode.zig").AddressingMode;
 
 const program_counter_address: u16 = 0xFFFC;
 
@@ -21,10 +22,13 @@ pub const CPU = struct {
     status: u8 = 0x00,
     stack_pointer: u8 = 0xFF,
     program_counter: u16 = 0x0000,
-    memory: [0xFFFF]u8 = [_]u8{0} ** 0xFFFF, //TODO: make separate struct later
+
+    memory: RAM,
 
     pub fn init() CPU {
-        return CPU{};
+        return CPU{
+            .memory = RAM.init(),
+        };
     }
 
     pub fn reset(self: *CPU) void {
@@ -32,50 +36,29 @@ pub const CPU = struct {
         self.register_x = 0;
         self.status = 0;
 
-        self.program_counter = self.memoryRead16(program_counter_address);
+        self.program_counter = self.memory.read16(program_counter_address);
     }
 
-    pub fn loadAndRun(self: *CPU, commands: []const u8) void {
-        self.load(commands);
+    pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
+        self.load(program_code);
         self.reset();
         self.run();
     }
 
-    fn load(self: *CPU, commands: []const u8) void {
-        std.mem.copy(u8, self.memory[0x8000 .. 0x8000 + commands.len], commands[0..commands.len]);
+    fn load(self: *CPU, program_code: []const u8) void {
+        self.memory.loadProgram(program_code);
         // program counter stored in memory at 0xFFFC
-        self.memoryWrite16(program_counter_address, 0x8000);
-    }
-
-    fn memoryRead(self: *CPU, address: u16) u8 {
-        return self.memory[address];
-    }
-
-    fn memoryRead16(self: *CPU, address: u16) u16 {
-        const low: u16 = self.memoryRead(address);
-        const high: u16 = self.memoryRead(address + 1);
-        return (high << 8) | (low);
-    }
-
-    fn memoryWrite(self: *CPU, address: u16, data: u8) void {
-        self.memory[address] = data;
-    }
-
-    fn memoryWrite16(self: *CPU, address: u16, data: u16) void {
-        const high = @intCast(u8, data >> 8);
-        const low = @intCast(u8, data & 0xFF);
-        self.memoryWrite(address, low);
-        self.memoryWrite(address + 1, high);
+        self.memory.write16(program_counter_address, 0x8000);
     }
 
     fn run(self: *CPU) void {
         while (self.program_counter < 0x8010) { //TODO: remove magic number
-            const opcode = self.memoryRead(self.program_counter);
+            const opcode = self.memory.read8(self.program_counter);
             self.program_counter += 1;
 
             switch (opcode) {
                 0xA9 => { // LDA
-                    const param = self.memoryRead(self.program_counter);
+                    const param = self.memory.read8(self.program_counter);
                     self.program_counter += 1;
 
                     self.lda(param);
