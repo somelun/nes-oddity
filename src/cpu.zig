@@ -2,6 +2,8 @@ const std = @import("std");
 
 const Bus = @import("bus.zig").Bus;
 
+const program_counter_address: u16 = 0xFFFC;
+
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
     Z = (1 << 1), // zero
@@ -25,22 +27,49 @@ pub const CPU = struct {
         return CPU{};
     }
 
+    pub fn reset(self: *CPU) void {
+        self.register_a = 0;
+        self.register_x = 0;
+        self.status = 0;
+
+        self.program_counter = self.memoryRead16(program_counter_address);
+    }
+
     pub fn loadAndRun(self: *CPU, commands: []const u8) void {
         self.load(commands);
+        self.reset();
         self.run();
     }
 
     fn load(self: *CPU, commands: []const u8) void {
         std.mem.copy(u8, self.memory[0x8000 .. 0x8000 + commands.len], commands[0..commands.len]);
-        self.program_counter = 0x8000;
+        // program counter stored in memory at 0xFFFC
+        self.memoryWrite16(program_counter_address, 0x8000);
     }
 
     fn memoryRead(self: *CPU, address: u16) u8 {
         return self.memory[address];
     }
 
+    fn memoryRead16(self: *CPU, address: u16) u16 {
+        const low: u16 = self.memoryRead(address);
+        const high: u16 = self.memoryRead(address + 1);
+        return (high << 8) | (low);
+    }
+
+    fn memoryWrite(self: *CPU, address: u16, data: u8) void {
+        self.memory[address] = data;
+    }
+
+    fn memoryWrite16(self: *CPU, address: u16, data: u16) void {
+        const high = @intCast(u8, data >> 8);
+        const low = @intCast(u8, data & 0xFF);
+        self.memoryWrite(address, low);
+        self.memoryWrite(address + 1, high);
+    }
+
     fn run(self: *CPU) void {
-        while (self.program_counter < 0x8010) { //FIXME: remove magic number
+        while (self.program_counter < 0x8010) { //TODO: remove magic number
             const opcode = self.memoryRead(self.program_counter);
             self.program_counter += 1;
 
@@ -129,15 +158,14 @@ test "0xA9_LDA_negative_flag" {
 
 test "0xAA_TAX_move_a_to_x" {
     var cpu = CPU.init();
-    cpu.register_a = 10;
-    cpu.loadAndRun(&[_]u8{ 0xAA, 0x00 });
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
     std.testing.expect(cpu.register_x == 10);
 }
 
 test "INX_overflow" {
     var cpu = CPU.init();
     cpu.register_x = 0xFF;
-    cpu.loadAndRun(&[_]u8{ 0xE8, 0xE8, 0x00 });
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xFF, 0xAA, 0xE8, 0xE8, 0x00 });
     std.testing.expect(cpu.register_x == 1);
 }
 
