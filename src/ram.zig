@@ -7,14 +7,20 @@ pub const RAM = struct {
         return RAM{};
     }
 
+    pub fn write(self: *RAM, address: u16, data: u8) void {
+        if (address >= 0x0000 and address <= 0xFFFF) {
+            self.memory[address] = date;
+        }
+    }
+
     pub fn read8(self: *RAM, address: u16) u8 {
         return self.memory[address];
     }
 
     pub fn read16(self: *RAM, address: u16) u16 {
-        const low: u16 = self.read8(address);
-        const high: u16 = self.read8(address + 1);
-        return (high << 8) | (low);
+        const lo: u16 = self.read8(address);
+        const hi: u16 = self.read8(address + 1);
+        return (hi << 8) | (lo);
     }
 
     pub fn write8(self: *RAM, address: u16, data: u8) void {
@@ -22,10 +28,10 @@ pub const RAM = struct {
     }
 
     pub fn write16(self: *RAM, address: u16, data: u16) void {
-        const high = @intCast(u8, data >> 8);
-        const low = @intCast(u8, data & 0xFF);
-        self.write8(address, low);
-        self.write8(address + 1, high);
+        const hi = @intCast(u8, data >> 8);
+        const lo = @intCast(u8, data & 0xFF);
+        self.write8(address, lo);
+        self.write8(address + 1, hi);
     }
 
     pub fn loadProgram(self: *RAM, program_code: []const u8) void {
