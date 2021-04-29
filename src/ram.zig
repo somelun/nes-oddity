@@ -13,6 +13,10 @@ pub const RAM = struct {
         }
     }
 
+    pub fn read(self: *RAM, address: u16) u8 {
+        return self.memory[address];
+    }
+
     pub fn read8(self: *RAM, address: u16) u8 {
         return self.memory[address];
     }

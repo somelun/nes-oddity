@@ -47,7 +47,7 @@ pub const CPU = struct {
     pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
         self.load(program_code);
         self.reset();
-        self.run();
+        // self.run();
     }
 
     fn load(self: *CPU, program_code: []const u8) void {
@@ -99,27 +99,29 @@ pub const CPU = struct {
             },
 
             AddressingMode.Indirect => {
-                const ptr: u16 = memory.read16(self.program_counter);
+                const ptr: u16 = self.memory.read16(self.program_counter);
 
-                if (false) {} else {
-                    address = memory.read16(ptr);
+                if (ptr and 0x00FF == 0x00FF) {
+                    address = (self.memory.read8(ptr & 0xFF00) << 8) | self.memory.read8(ptr + 0);
+                } else {
+                    address = (self.memory.read8(ptr + 1) << 8) | self.memory.read8(ptr + 0);
                 }
             },
 
             AddressingMode.IndirectX => {
-                // const base: u8 = self.memory.read8(self.program_counter) +% self.register_x;
-                //
-                // const lo: u16 = self.memory.read8(base);
-                // const hi: u16 = self.memory.read8(base +% 1);
-                // address = (hi << 8) | (lo);
+                const base: u8 = self.memory.read8(self.program_counter) +% self.register_x;
+
+                const lo: u16 = self.memory.read8(base);
+                const hi: u16 = self.memory.read8(base +% 1);
+                address = (hi << 8) | (lo);
             },
 
             AddressingMode.IndirectY => {
-                // const base: u8 = self.memory.read8(self.program_counter) +% self.register_y;
-                //
-                // const lo: u16 = self.memory.read8(base);
-                // const hi: u16 = self.memory.read8(base +% 1);
-                // address = (hi << 8) | (lo);
+                const base: u8 = self.memory.read8(self.program_counter) +% self.register_y;
+
+                const lo: u16 = self.memory.read8(base);
+                const hi: u16 = self.memory.read8(base +% 1);
+                address = (hi << 8) | (lo);
             },
 
             else => {},
