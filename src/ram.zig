@@ -7,28 +7,18 @@ pub const RAM = struct {
         return RAM{};
     }
 
-    pub fn write(self: *RAM, address: u16, data: u8) void {
-        if (address >= 0x0000 and address <= 0xFFFF) {
-            self.memory[address] = date;
-        }
-    }
-
-    pub fn read(self: *RAM, address: u16) u8 {
-        return self.memory[address];
-    }
-
     pub fn read8(self: *RAM, address: u16) u8 {
         return self.memory[address];
+    }
+
+    pub fn write8(self: *RAM, address: u16, data: u8) void {
+        self.memory[address] = data;
     }
 
     pub fn read16(self: *RAM, address: u16) u16 {
         const lo: u16 = self.read8(address);
         const hi: u16 = self.read8(address + 1);
         return (hi << 8) | (lo);
-    }
-
-    pub fn write8(self: *RAM, address: u16, data: u8) void {
-        self.memory[address] = data;
     }
 
     pub fn write16(self: *RAM, address: u16, data: u16) void {
