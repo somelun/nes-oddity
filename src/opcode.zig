@@ -1,3 +1,6 @@
+const std = @import("std");
+const AutoHashMap = @import("std").AutoHashMap;
+
 pub const AddressingMode = enum {
     Implied,
     Accumulator,
@@ -75,26 +78,40 @@ pub const OpcodeName = enum {
 
 pub const Opcode = struct {
     name: OpcodeName,
-    code: u8, // just for better way to output, I guess
     addressing_mode: AddressingMode,
     bytes: u8,
     cycles: u8,
 
-    pub fn init(name: OpcodeName, code: u8, addressing_mode: AddressingMode, bytes: u8, cycles: u8) Opcode {
-        return Opcode{
-            .name = name,
-            .code = code,
-            .addressing_mode = addressing_mode,
-            .bytes = bytes,
-            .cycles = cycles,
-        };
-    }
+    // pub fn init(name: OpcodeName, addressing_mode: AddressingMode, bytes: u8, cycles: u8) Opcode {
+    //     return Opcode{
+    //         .name = name,
+    //         .addressing_mode = addressing_mode,
+    //         .bytes = bytes,
+    //         .cycles = cycles,
+    //     };
+    // }
 };
 
-pub fn generateOpcodes() [0x100]Opcode {
-    var opcodes: [0x100]Opcode = undefined;
+pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
+    var opcodes = AutoHashMap(u8, Opcode).init(std.heap.page_allocator);
 
-    opcodes[0x00] = Opcode.init(OpcodeName.BRK, 0x00, AddressingMode.Implied, 1, 7);
+    // ADC
+    // opcodes[0x69] = Opcode.init(OpcodeName.ADC, AddressingMode.Imediate, 2, 2);
+    // opcodes[0x65] = Opcode.init(OpcodeName.ADC, AddressingMode.ZeroPage, 2, 3);
+    // opcodes[0x75] = Opcode.init(OpcodeName.ADC, AddressingMode.ZeroPageX, 2, 4);
+    // opcodes[0x6D] = Opcode.init(OpcodeName.ADC, AddressingMode.Absolute, 3, 4);
+    // opcodes[0x7D] = Opcode.init(OpcodeName.ADC, AddressingMode.AbsoluteX, 3, 4);
+    // opcodes[0x79] = Opcode.init(OpcodeName.ADC, AddressingMode.AbsoluteY, 3, 4);
+    // opcodes[0x61] = Opcode.init(OpcodeName.ADC, AddressingMode.IndirectX, 2, 6);
+    // opcodes[0x71] = Opcode.init(OpcodeName.ADC, AddressingMode.IndirectY, 2, 5);
+    var asd: OpcodeName = OpcodeName.BRK;
+    // BRK
+    _ = try opcodes.put(0x00, Opcode{
+        .name = OpcodeName.BRK,
+        .addressing_mode = AddressingMode.Implied,
+        .bytes = 1,
+        .cycles = 7,
+    });
     // opcodes[0x01] =
     // opcodes[0x02] =
     // opcodes[0x03] =
@@ -199,7 +216,7 @@ pub fn generateOpcodes() [0x100]Opcode {
     // opcodes[0x66] =
     // opcodes[0x67] =
     // opcodes[0x68] =
-    opcodes[0x69] = Opcode.init(OpcodeName.ADC, 0x69, AddressingMode.Immediate, 2, 2);
+    // opcodes[0x69] = Opcode.init(OpcodeName.ADC, 0x69, AddressingMode.Immediate, 2, 2);
     // opcodes[0x6A] =
     // opcodes[0x6B] =
     // opcodes[0x6C] =
@@ -263,7 +280,7 @@ pub fn generateOpcodes() [0x100]Opcode {
     // opcodes[0xA6] =
     // opcodes[0xA7] =
     // opcodes[0xA8] =
-    opcodes[0xA9] = Opcode.init(OpcodeName.BRK, 0xA9, AddressingMode.Immediate, 2, 2);
+    // opcodes[0xA9] = Opcode.init(OpcodeName.BRK, 0xA9, AddressingMode.Immediate, 2, 2);
     // opcodes[0xAA] =
     // opcodes[0xAB] =
     // opcodes[0xAC] =

@@ -1,12 +1,14 @@
 const std = @import("std");
+const AutoHashMap = std.AutoHashMap;
 
 const RAM = @import("ram.zig").RAM;
-const AddressingMode = @import("opcode.zig").AddressingMode;
-const Opcode = @import("opcode.zig").Opcode;
+
 const OpcodeAPI = @import("opcode.zig");
+const Opcode = OpcodeAPI.Opcode;
+const AddressingMode = OpcodeAPI.AddressingMode;
 
 const program_counter_address: u16 = 0xFFFC;
-const opcodes: [0x100]Opcode = OpcodeAPI.generateOpcodes();
+const opcodes: AutoHashMap(u8, Opcode) = OpcodeAPI.generateOpcodes();
 
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
@@ -134,14 +136,16 @@ pub const CPU = struct {
     }
 
     fn run(self: *CPU) void {
+        // std.debug.print("{any}", .{opcodes});
         while (self.program_counter < 0xFFFC) { //TODO: remove magic number
             const value = self.memory.read8(self.program_counter);
-            const opcode = opcodes[value];
-
             self.program_counter += 1;
 
-            // std.debug.print("{any}", .{opcode});
-            switch (opcode.code) {
+            // const opcode = opcodes[value];
+            switch (value) {
+                // ADC
+                0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {},
+
                 0xA9 => { // LDA
                     const param = self.memory.read8(self.program_counter);
                     self.program_counter += 1;
