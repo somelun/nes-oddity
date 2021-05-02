@@ -8,7 +8,6 @@ const Opcode = OpcodeAPI.Opcode;
 const AddressingMode = OpcodeAPI.AddressingMode;
 
 const program_counter_address: u16 = 0xFFFC;
-const opcodes: AutoHashMap(u8, Opcode) = OpcodeAPI.generateOpcodes();
 
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
@@ -30,10 +29,12 @@ pub const CPU = struct {
     program_counter: u16 = 0x0000,
 
     memory: RAM,
+    opcodes: AutoHashMap(u8, Opcode),
 
     pub fn init() CPU {
         return CPU{
             .memory = RAM.init(),
+            .opcodes = OpcodeAPI.generateOpcodes(),
         };
     }
 
@@ -49,7 +50,7 @@ pub const CPU = struct {
         //
     }
 
-    pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
+    pub fn loadAndRun(self: *CPU, program_code: []const u8) !void {
         self.load(program_code);
         self.reset();
         self.run();
@@ -136,7 +137,6 @@ pub const CPU = struct {
     }
 
     fn run(self: *CPU) void {
-        // std.debug.print("{any}", .{opcodes});
         while (self.program_counter < 0xFFFC) { //TODO: remove magic number
             const value = self.memory.read8(self.program_counter);
             self.program_counter += 1;
@@ -211,7 +211,7 @@ pub const CPU = struct {
 
 test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x00 });
+    try cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
     std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
     std.debug.assert(cpu.status & 0b1000_0000 == 0);

@@ -82,36 +82,32 @@ pub const Opcode = struct {
     bytes: u8,
     cycles: u8,
 
-    // pub fn init(name: OpcodeName, addressing_mode: AddressingMode, bytes: u8, cycles: u8) Opcode {
-    //     return Opcode{
-    //         .name = name,
-    //         .addressing_mode = addressing_mode,
-    //         .bytes = bytes,
-    //         .cycles = cycles,
-    //     };
-    // }
+    pub fn init(name: OpcodeName, addressing_mode: AddressingMode, bytes: u8, cycles: u8) Opcode {
+        return Opcode{
+            .name = name,
+            .addressing_mode = addressing_mode,
+            .bytes = bytes,
+            .cycles = cycles,
+        };
+    }
 };
 
 pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     var opcodes = AutoHashMap(u8, Opcode).init(std.heap.page_allocator);
 
     // ADC
-    // opcodes[0x69] = Opcode.init(OpcodeName.ADC, AddressingMode.Imediate, 2, 2);
-    // opcodes[0x65] = Opcode.init(OpcodeName.ADC, AddressingMode.ZeroPage, 2, 3);
-    // opcodes[0x75] = Opcode.init(OpcodeName.ADC, AddressingMode.ZeroPageX, 2, 4);
-    // opcodes[0x6D] = Opcode.init(OpcodeName.ADC, AddressingMode.Absolute, 3, 4);
-    // opcodes[0x7D] = Opcode.init(OpcodeName.ADC, AddressingMode.AbsoluteX, 3, 4);
-    // opcodes[0x79] = Opcode.init(OpcodeName.ADC, AddressingMode.AbsoluteY, 3, 4);
-    // opcodes[0x61] = Opcode.init(OpcodeName.ADC, AddressingMode.IndirectX, 2, 6);
-    // opcodes[0x71] = Opcode.init(OpcodeName.ADC, AddressingMode.IndirectY, 2, 5);
-    var asd: OpcodeName = OpcodeName.BRK;
+    opcodes.put(0x69, Opcode.init(OpcodeName.ADC, AddressingMode.Immediate, 2, 2)) catch unreachable;
+    opcodes.put(0x65, Opcode.init(OpcodeName.ADC, AddressingMode.ZeroPage, 2, 3)) catch unreachable;
+    opcodes.put(0x75, Opcode.init(OpcodeName.ADC, AddressingMode.ZeroPageX, 2, 4)) catch unreachable;
+    opcodes.put(0x6D, Opcode.init(OpcodeName.ADC, AddressingMode.Absolute, 3, 4)) catch unreachable;
+    opcodes.put(0x7D, Opcode.init(OpcodeName.ADC, AddressingMode.AbsoluteX, 3, 4)) catch unreachable;
+    opcodes.put(0x79, Opcode.init(OpcodeName.ADC, AddressingMode.AbsoluteY, 3, 4)) catch unreachable;
+    opcodes.put(0x61, Opcode.init(OpcodeName.ADC, AddressingMode.IndirectX, 2, 6)) catch unreachable;
+    opcodes.put(0x71, Opcode.init(OpcodeName.ADC, AddressingMode.IndirectY, 2, 5)) catch unreachable;
+
     // BRK
-    _ = try opcodes.put(0x00, Opcode{
-        .name = OpcodeName.BRK,
-        .addressing_mode = AddressingMode.Implied,
-        .bytes = 1,
-        .cycles = 7,
-    });
+    opcodes.put(0x00, Opcode.init(OpcodeName.BRK, AddressingMode.Implied, 1, 7)) catch unreachable;
+
     // opcodes[0x01] =
     // opcodes[0x02] =
     // opcodes[0x03] =
