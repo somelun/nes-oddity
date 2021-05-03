@@ -3,9 +3,9 @@ const AutoHashMap = std.AutoHashMap;
 
 const RAM = @import("ram.zig").RAM;
 
-const OpcodeAPI = @import("opcode.zig");
-const Opcode = OpcodeAPI.Opcode;
-const AddressingMode = OpcodeAPI.AddressingMode;
+const OpcodesAPI = @import("opcodes.zig");
+const Opcode = OpcodesAPI.Opcode;
+const AddressingMode = OpcodesAPI.AddressingMode;
 
 const program_counter_address: u16 = 0xFFFC;
 
@@ -34,7 +34,7 @@ pub const CPU = struct {
     pub fn init() CPU {
         return CPU{
             .memory = RAM.init(),
-            .opcodes = OpcodeAPI.generateOpcodes(),
+            .opcodes = OpcodesAPI.generateOpcodes(),
         };
     }
 
@@ -57,6 +57,12 @@ pub const CPU = struct {
 
         // program counter stored in memory at 0xFFFC
         self.memory.write16(program_counter_address, 0x8000);
+    }
+
+    fn setFlag(self: *CPU) void {}
+
+    fn getFlag(self: *CPU) bool {
+        return true;
     }
 
     fn getOperandAddress(self: *CPU, mode: AddressingMode) u16 {
