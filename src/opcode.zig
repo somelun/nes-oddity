@@ -295,11 +295,11 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0x6E, Opcode.init(OpcodeName.ROR, AddressingMode.Absolute, 3, 6)) catch unreachable;
     opcodes.put(0x7E, Opcode.init(OpcodeName.ROR, AddressingMode.AbsoluteX, 3, 7)) catch unreachable;
 
-    // PTI: Return from Interrupt
-    opcodes.put(0x40, Opcode.init(OpcodeName.PTI, AddressingMode.Implied, 1, 6)) catch unreachable;
+    // RTI: Return from Interrupt
+    opcodes.put(0x40, Opcode.init(OpcodeName.RTI, AddressingMode.Implied, 1, 6)) catch unreachable;
 
-    // PTS: Return from Subroutine
-    opcodes.put(0x60, Opcode.init(OpcodeName.PTS, AddressingMode.Implied, 1, 6)) catch unreachable;
+    // RTS: Return from Subroutine
+    opcodes.put(0x60, Opcode.init(OpcodeName.RTS, AddressingMode.Implied, 1, 6)) catch unreachable;
 
     // SBC: Substruct Memory from Accumulator with Borrow
     opcodes.put(0xE9, Opcode.init(OpcodeName.SBC, AddressingMode.Immediate, 2, 2)) catch unreachable;
@@ -354,8 +354,8 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     // TXS: Transfer Index X to Stack Register
     opcodes.put(0x8A, Opcode.init(OpcodeName.TXS, AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // TYS: Transfer Index Y to Stack Register
-    opcodes.put(0x98, Opcode.init(OpcodeName.TYS, AddressingMode.Implied, 1, 2)) catch unreachable;
+    // TYA: Transfer Index Y to Accumulator
+    opcodes.put(0x98, Opcode.init(OpcodeName.TYA, AddressingMode.Implied, 1, 2)) catch unreachable;
 
     return opcodes;
 }

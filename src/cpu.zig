@@ -50,7 +50,7 @@ pub const CPU = struct {
         //
     }
 
-    pub fn loadAndRun(self: *CPU, program_code: []const u8) !void {
+    pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
         self.load(program_code);
         self.reset();
         self.run();
@@ -211,7 +211,7 @@ pub const CPU = struct {
 
 test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
-    try cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x00 });
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
     std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
     std.debug.assert(cpu.status & 0b1000_0000 == 0);
