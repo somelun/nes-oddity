@@ -66,10 +66,10 @@ pub const CPU = struct {
     }
 
     fn getOperandAddress(self: *CPU, mode: AddressingMode) u16 {
-        var address: u16 = indefined;
+        var address: u16 = undefined;
 
         switch (mode) {
-            AddressingMode.Implicit => {},
+            AddressingMode.Implied => {},
 
             AddressingMode.Accumulator => {
                 address = self.register_a;
@@ -102,7 +102,7 @@ pub const CPU = struct {
             },
 
             AddressingMode.Absolute => {
-                address = memory.read16(self.program_counter);
+                address = self.memory.read16(self.program_counter);
                 self.program_counter += 2;
             },
 
@@ -121,10 +121,10 @@ pub const CPU = struct {
                 self.program_counter += 2;
 
                 // TODO: test this
-                if (ptr and 0x00FF == 0x00FF) {
-                    address = (self.memory.read8(ptr & 0xFF00) << 8) | self.memory.read8(ptr + 0);
+                if (ptr & 0x00FF == 0x00FF) {
+                    address = (@intCast(u16, self.memory.read8(ptr & 0xFF00)) << 8) | self.memory.read8(ptr + 0);
                 } else {
-                    address = (self.memory.read8(ptr + 1) << 8) | self.memory.read8(ptr + 0);
+                    address = (@intCast(u16, self.memory.read8(ptr + 1)) << 8) | self.memory.read8(ptr + 0);
                 }
             },
 
@@ -147,8 +147,6 @@ pub const CPU = struct {
                 const deref = (hi << 8) | (lo);
                 address = deref +% self.register_y;
             },
-
-            else => {},
         }
 
         return address;
@@ -159,28 +157,37 @@ pub const CPU = struct {
             const value = self.memory.read8(self.program_counter);
             self.program_counter += 1;
 
-            // const opcode = opcodes[value];
+            const opcode: ?Opcode = self.opcodes.get(value);
+            if (opcode == null) {
+                continue;
+            }
+
+            const addressing_mode = opcode.?.addressing_mode;
+
             switch (value) {
                 // ADC
-                0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {},
-
-                0xA9 => { // LDA
-                    const param = self.memory.read8(self.program_counter);
-                    self.program_counter += 1;
-
-                    self.lda(param);
+                0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {
+                    self.adc(addressing_mode);
+                    continue;
                 },
 
-                0xAA => { //TAX
+                0x00 => { // BRK
+                    return;
+                },
+
+                // LDA
+                0xA9, 0xA5, 0xB5, 0xAD, 0xBD, 0xB9, 0xA1, 0xB1 => {
+                    self.lda(addressing_mode);
+                    continue;
+                },
+
+                // TAX
+                0xAA => {
                     self.tax();
                 },
 
                 0xE8 => { //INX
                     self.inx();
-                },
-
-                0x00 => { // BRK
-                    return;
                 },
 
                 else => { // unknown instruction or already used data
@@ -193,6 +200,14 @@ pub const CPU = struct {
     fn updateZeroAndNegativeFlag(self: *CPU, value: u8) void {
         self.updateZeroFlag(value);
         self.updateNegativeFlag(value);
+    }
+
+    fn updateCarryFlag(self: *CPU, value: u8) void {
+        if (value == 0) {
+            self.status = self.status | 0b0000_0001;
+        } else {
+            self.status = self.status | 0b1111_1110;
+        }
     }
 
     fn updateZeroFlag(self: *CPU, value: u8) void {
@@ -211,7 +226,17 @@ pub const CPU = struct {
         }
     }
 
-    fn lda(self: *CPU, value: u8) void {
+    ///////////////////////////////////////////////////////
+    // Instructions
+
+    fn adc(self: *CPU, mode: AddressingMode) void {
+        //
+    }
+
+    fn lda(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value = self.memory.read8(address);
+
         self.register_a = value;
         self.updateZeroAndNegativeFlag(self.register_a);
     }
@@ -227,46 +252,44 @@ pub const CPU = struct {
     }
 };
 
+///////////////////////////////////////////////////////////
+// Tests
+
 test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x00 });
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
     std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
     std.debug.assert(cpu.status & 0b1000_0000 == 0);
 }
 
-// test "0xA9_LDA_zero_flag" {
-//     var cpu = CPU.init();
-//     cpu.loadAndRun(&[_]u8{ 0xA9, 0x00, 0x00 });
-//     std.debug.assert(cpu.status & 0b0000_0010 == 0b10);
-// }
-//
-// test "0xA9_LDA_negative_flag" {
-//     var cpu = CPU.init();
-//     cpu.loadAndRun(&[_]u8{ 0xa9, 0xff, 0x00 });
-//     std.debug.assert(cpu.status & 0b1000_0000 == 0b1000_0000);
-// }
-//
-// test "0xAA_TAX_move_a_to_x" {
-//     var cpu = CPU.init();
-//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
-//     std.testing.expect(cpu.register_x == 10);
-// }
-//
-// test "INX_overflow" {
-//     var cpu = CPU.init();
-//     cpu.register_x = 0xFF;
-//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xFF, 0xAA, 0xE8, 0xE8, 0x00 });
-//     std.testing.expect(cpu.register_x == 1);
-// }
-//
-// test "5_ops_working_together" {
-//     var cpu = CPU.init();
-//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
-//     std.testing.expect(cpu.register_x == 0xc1);
-// }
-//
-// test "load_and_run" {
-//     var cpu = CPU.init();
-//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
-// }
+test "0xA9_LDA_zero_flag" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0x00, 0x00 });
+    std.debug.assert(cpu.status & 0b0000_0010 == 0b10);
+}
+
+test "0xA9_LDA_negative_flag" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{ 0xa9, 0xff, 0x00 });
+    std.debug.assert(cpu.status & 0b1000_0000 == 0b1000_0000);
+}
+
+test "0xAA_TAX_move_a_to_x" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
+    std.testing.expect(cpu.register_x == 10);
+}
+
+test "INX_overflow" {
+    var cpu = CPU.init();
+    cpu.register_x = 0xFF;
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xFF, 0xAA, 0xE8, 0xE8, 0x00 });
+    std.testing.expect(cpu.register_x == 1);
+}
+
+test "5_ops_working_together" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
+    std.testing.expect(cpu.register_x == 0xc1);
+}
