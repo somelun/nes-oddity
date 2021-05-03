@@ -92,6 +92,7 @@ pub const Opcode = struct {
     }
 };
 
+// https://www.masswerk.at/6502/6502_instruction_set.html
 pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     var opcodes = AutoHashMap(u8, Opcode).init(std.heap.page_allocator);
 

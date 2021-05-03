@@ -46,10 +46,6 @@ pub const CPU = struct {
         self.program_counter = self.memory.read16(program_counter_address);
     }
 
-    pub fn clock() void {
-        //
-    }
-
     pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
         self.load(program_code);
         self.reset();
@@ -58,6 +54,7 @@ pub const CPU = struct {
 
     fn load(self: *CPU, program_code: []const u8) void {
         self.memory.loadProgram(program_code);
+
         // program counter stored in memory at 0xFFFC
         self.memory.write16(program_counter_address, 0x8000);
     }
@@ -74,39 +71,50 @@ pub const CPU = struct {
 
             AddressingMode.Immediate => {
                 address = self.program_counter;
+                self.program_counter += 1;
             },
 
             AddressingMode.ZeroPage => {
                 address = @intCast(u16, self.memory.read8(self.program_counter));
+                self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageX => {
                 address = @intCast(u16, self.memory.read8(self.program_counter) +% self.register_x);
+                self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageY => {
                 address = @intCast(u16, self.memory.read8(self.program_counter) +% self.register_y);
+                self.program_counter += 1;
             },
 
             AddressingMode.Relative => {
-                //return
+                // TODO:
+                // address = memory.read8(self.program_counter);
+                // self.program_counter += 1;
             },
 
             AddressingMode.Absolute => {
                 address = memory.read16(self.program_counter);
+                self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteX => {
                 address = self.memory.read16(self.program_counter) +% self.register_x;
+                self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteY => {
                 address = self.memory.read16(self.program_counter) +% self.register_y;
+                self.program_counter += 2;
             },
 
             AddressingMode.Indirect => {
                 const ptr: u16 = self.memory.read16(self.program_counter);
+                self.program_counter += 2;
 
+                // TODO: test this
                 if (ptr and 0x00FF == 0x00FF) {
                     address = (self.memory.read8(ptr & 0xFF00) << 8) | self.memory.read8(ptr + 0);
                 } else {
@@ -115,19 +123,23 @@ pub const CPU = struct {
             },
 
             AddressingMode.IndirectX => {
-                const base: u8 = self.memory.read8(self.program_counter) +% self.register_x;
+                const ptr: u8 = self.memory.read8(self.program_counter) +% self.register_x;
+                self.program_counter += 1;
 
-                const lo: u16 = self.memory.read8(base);
-                const hi: u16 = self.memory.read8(base +% 1);
+                const lo: u16 = self.memory.read8(ptr);
+                const hi: u16 = self.memory.read8(ptr +% 1);
                 address = (hi << 8) | (lo);
             },
 
             AddressingMode.IndirectY => {
-                const base: u8 = self.memory.read8(self.program_counter) +% self.register_y;
+                const base: u8 = self.memory.read8(self.program_counter);
+                self.program_counter += 1;
 
                 const lo: u16 = self.memory.read8(base);
                 const hi: u16 = self.memory.read8(base +% 1);
-                address = (hi << 8) | (lo);
+
+                const deref = (hi << 8) | (lo);
+                address = deref +% self.register_y;
             },
 
             else => {},
