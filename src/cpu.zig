@@ -59,12 +59,6 @@ pub const CPU = struct {
         self.memory.write16(program_counter_address, 0x8000);
     }
 
-    fn setFlag(self: *CPU) void {}
-
-    fn getFlag(self: *CPU) bool {
-        return true;
-    }
-
     fn getOperandAddress(self: *CPU, mode: AddressingMode) u16 {
         var address: u16 = undefined;
 
@@ -198,16 +192,24 @@ pub const CPU = struct {
     }
 
     fn updateZeroAndNegativeFlag(self: *CPU, value: u8) void {
+        // self.setFlag(StatusFlag.Z, value);
+        // self.setFlag(StatusFlag.N, value & 0x0080);
         self.updateZeroFlag(value);
         self.updateNegativeFlag(value);
     }
 
-    fn updateCarryFlag(self: *CPU, value: u8) void {
-        if (value == 0) {
-            self.status = self.status | 0b0000_0001;
+    fn setFlag(self: *CPU, flag: StatusFlag, value: bool) void {
+        const number = @enumToInt(flag);
+        if (value) {
+            self.status = self.status | number;
         } else {
-            self.status = self.status | 0b1111_1110;
+            self.status = self.status & (~number);
         }
+    }
+
+    fn getFlag(self: *CPU, flag: StatusFlag) u8 {
+        const number = @enumToInt(flag);
+        return self.status & number;
     }
 
     fn updateZeroFlag(self: *CPU, value: u8) void {
@@ -230,7 +232,8 @@ pub const CPU = struct {
     // Instructions
 
     fn adc(self: *CPU, mode: AddressingMode) void {
-        //
+        const address: u16 = self.getOperandAddress(mode);
+        const value = self.memory.read8(address);
     }
 
     fn lda(self: *CPU, mode: AddressingMode) void {
@@ -259,6 +262,10 @@ test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
     cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
+    // std.debug.warn("Z: {b}\n", .{cpu.getFlag(StatusFlag.Z)});
+    // std.debug.warn("N: {b}\n", .{cpu.getFlag(StatusFlag.N)});
+    // std.debug.assert(cpu.getFlag(StatusFlag.Z) == 0);
+    // std.debug.assert(cpu.getFlag(StatusFlag.N) == 0);
     std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
     std.debug.assert(cpu.status & 0b1000_0000 == 0);
 }
@@ -293,3 +300,12 @@ test "5_ops_working_together" {
     cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
     std.testing.expect(cpu.register_x == 0xc1);
 }
+
+// test "status_flags" {
+//     var cpu = CPU.init();
+//     std.debug.warn("before {b}\n", .{cpu.status});
+//     const t: u8 = 0;
+//     cpu.setFlag(StatusFlag.Z, t == 0x00);
+//     cpu.setFlag(StatusFlag.N, t & 0x80);
+//     std.debug.warn("after {b}\n", .{cpu.status});
+// }
