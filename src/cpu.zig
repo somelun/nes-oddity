@@ -75,24 +75,28 @@ pub const CPU = struct {
             },
 
             AddressingMode.ZeroPage => {
-                address = @intCast(u16, self.memory.read8(self.program_counter));
+                address = self.memory.read8(self.program_counter);
                 self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageX => {
-                address = @intCast(u16, self.memory.read8(self.program_counter) +% self.register_x);
+                address = self.memory.read8(self.program_counter) +% self.register_x;
                 self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageY => {
-                address = @intCast(u16, self.memory.read8(self.program_counter) +% self.register_y);
+                address = self.memory.read8(self.program_counter) +% self.register_y;
                 self.program_counter += 1;
             },
 
             AddressingMode.Relative => {
-                // TODO:
-                // address = memory.read8(self.program_counter);
-                // self.program_counter += 1;
+                const offset: u8 = self.memory.read8(self.program_counter);
+                self.program_counter += 1;
+
+                address = self.program_counter + offset;
+                if (offset >= 0x80) {
+                    address -= 0x0100;
+                }
             },
 
             AddressingMode.Absolute => {
@@ -161,27 +165,39 @@ pub const CPU = struct {
             switch (value) {
                 // ADC
                 0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {
-                    self.adc(addressing_mode);
+                    self._adc(addressing_mode);
                     continue;
                 },
 
-                0x00 => { // BRK
+                // AND
+                0x29, 0x25, 0x35, 0x2D, 0x3D, 0x39, 0x21, 0x31 => {
+                    self._and(addressing_mode);
+                    continue;
+                },
+
+                // BCS
+                0xB0 => {
+                    self._bcs();
+                },
+
+                // BRK
+                0x00 => {
                     return;
                 },
 
                 // LDA
                 0xA9, 0xA5, 0xB5, 0xAD, 0xBD, 0xB9, 0xA1, 0xB1 => {
-                    self.lda(addressing_mode);
+                    self._lda(addressing_mode);
                     continue;
                 },
 
                 // TAX
                 0xAA => {
-                    self.tax();
+                    self._tax();
                 },
 
                 0xE8 => { //INX
-                    self.inx();
+                    self._inx();
                 },
 
                 else => { // unknown instruction or already used data
@@ -192,15 +208,13 @@ pub const CPU = struct {
     }
 
     fn updateZeroAndNegativeFlag(self: *CPU, value: u8) void {
-        // self.setFlag(StatusFlag.Z, value);
-        // self.setFlag(StatusFlag.N, value & 0x0080);
         self.updateZeroFlag(value);
         self.updateNegativeFlag(value);
     }
 
-    fn setFlag(self: *CPU, flag: StatusFlag, value: bool) void {
+    fn setFlag(self: *CPU, flag: StatusFlag, value: u8) void {
         const number = @enumToInt(flag);
-        if (value) {
+        if (value != 0) {
             self.status = self.status | number;
         } else {
             self.status = self.status & (~number);
@@ -209,7 +223,7 @@ pub const CPU = struct {
 
     fn getFlag(self: *CPU, flag: StatusFlag) u8 {
         const number = @enumToInt(flag);
-        return self.status & number;
+        return if (self.status & number > 0) 1 else 0;
     }
 
     fn updateZeroFlag(self: *CPU, value: u8) void {
@@ -231,12 +245,55 @@ pub const CPU = struct {
     ///////////////////////////////////////////////////////
     // Instructions
 
-    fn adc(self: *CPU, mode: AddressingMode) void {
+    fn _adc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value = self.memory.read8(address);
+        const fetched: u16 = @intCast(u16, self.memory.read8(address));
+        const value: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
+
+        if (value > 255) {
+            self.setFlag(StatusFlag.C, 1);
+        } else {
+            self.setFlag(StatusFlag.C, 0);
+        }
+
+        if ((~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ value)) & 0x0080 != 0) {
+            self.setFlag(StatusFlag.V, 1);
+        } else {
+            self.setFlag(StatusFlag.V, 0);
+        }
+
+        // if (value & 0x00FF == 0) {
+        //     self.setFlag(StatusFlag.Z, 1);
+        // } else {
+        //     self.setFlag(StatusFlag.Z, 0);
+        // }
+        //
+        // if (value & 0x80) {
+        //     self.setFlag(StatusFlag.N, 1);
+        // } else {
+        //     self.setFlag(StatusFlag.N, 0);
+        // }
+        //
+
+        self.updateZeroAndNegativeFlag(@intCast(u8, value & 0x00FF));
+
+        self.register_a = @intCast(u8, value & 0x00FF);
     }
 
-    fn lda(self: *CPU, mode: AddressingMode) void {
+    fn _and(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value: u8 = self.memory.read8(address);
+
+        self.updateZeroAndNegativeFlag(value);
+    }
+
+    fn _bcs(self: *CPU) void {
+        if (self.getFlag(StatusFlag.C) > 0) {
+            //
+        }
+    }
+
+    fn _lda(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
         const value = self.memory.read8(address);
 
@@ -244,12 +301,12 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
-    fn tax(self: *CPU) void {
+    fn _tax(self: *CPU) void {
         self.register_x = self.register_a;
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
-    fn inx(self: *CPU) void {
+    fn _inx(self: *CPU) void {
         self.register_x +%= 1;
         self.updateZeroAndNegativeFlag(self.register_x);
     }
@@ -262,8 +319,6 @@ test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
     cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
-    // std.debug.warn("Z: {b}\n", .{cpu.getFlag(StatusFlag.Z)});
-    // std.debug.warn("N: {b}\n", .{cpu.getFlag(StatusFlag.N)});
     // std.debug.assert(cpu.getFlag(StatusFlag.Z) == 0);
     // std.debug.assert(cpu.getFlag(StatusFlag.N) == 0);
     std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
@@ -305,7 +360,10 @@ test "5_ops_working_together" {
 //     var cpu = CPU.init();
 //     std.debug.warn("before {b}\n", .{cpu.status});
 //     const t: u8 = 0;
-//     cpu.setFlag(StatusFlag.Z, t == 0x00);
-//     cpu.setFlag(StatusFlag.N, t & 0x80);
+//     cpu.setFlag(StatusFlag.Z, 1);
+//     cpu.setFlag(StatusFlag.N, 1);
+//
+//     cpu.setFlag(StatusFlag.C, 1);
+//
 //     std.debug.warn("after {b}\n", .{cpu.status});
 // }
