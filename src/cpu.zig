@@ -178,11 +178,18 @@ pub const CPU = struct {
                 // BCS
                 0xB0 => {
                     self._bcs();
+                    continue;
                 },
 
                 // BRK
                 0x00 => {
                     return;
+                },
+
+                // CLC
+                0x18 => {
+                    self._clc();
+                    continue;
                 },
 
                 // LDA
@@ -212,9 +219,9 @@ pub const CPU = struct {
         self.updateNegativeFlag(value);
     }
 
-    fn setFlag(self: *CPU, flag: StatusFlag, value: u8) void {
+    fn setFlag(self: *CPU, flag: StatusFlag, value: bool) void {
         const number = @enumToInt(flag);
-        if (value != 0) {
+        if (value) {
             self.status = self.status | number;
         } else {
             self.status = self.status & (~number);
@@ -230,7 +237,7 @@ pub const CPU = struct {
         if (value == 0) {
             self.status = self.status | 0b0000_0010;
         } else {
-            self.status = self.status | 0b1111_1101;
+            self.status = self.status & 0b1111_1101;
         }
     }
 
@@ -250,30 +257,9 @@ pub const CPU = struct {
         const fetched: u16 = @intCast(u16, self.memory.read8(address));
         const value: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
 
-        if (value > 255) {
-            self.setFlag(StatusFlag.C, 1);
-        } else {
-            self.setFlag(StatusFlag.C, 0);
-        }
+        self.setFlag(StatusFlag.C, value > 255);
 
-        if ((~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ value)) & 0x0080 != 0) {
-            self.setFlag(StatusFlag.V, 1);
-        } else {
-            self.setFlag(StatusFlag.V, 0);
-        }
-
-        // if (value & 0x00FF == 0) {
-        //     self.setFlag(StatusFlag.Z, 1);
-        // } else {
-        //     self.setFlag(StatusFlag.Z, 0);
-        // }
-        //
-        // if (value & 0x80) {
-        //     self.setFlag(StatusFlag.N, 1);
-        // } else {
-        //     self.setFlag(StatusFlag.N, 0);
-        // }
-        //
+        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ value)) & 0x0080 != 0);
 
         self.updateZeroAndNegativeFlag(@intCast(u8, value & 0x00FF));
 
@@ -291,6 +277,10 @@ pub const CPU = struct {
         if (self.getFlag(StatusFlag.C) > 0) {
             //
         }
+    }
+
+    fn _clc(self: *CPU) void {
+        self.setFlag(StatusFlag.C, false);
     }
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
@@ -354,6 +344,13 @@ test "5_ops_working_together" {
     var cpu = CPU.init();
     cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
     std.testing.expect(cpu.register_x == 0xc1);
+}
+
+test "adc_different" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{ 0xA9, 0x12, 0x69, 0x12, 0x00 });
+    std.debug.warn("a = {X}\n", .{cpu.register_a});
+    std.testing.expect(cpu.register_a == 0x24);
 }
 
 // test "status_flags" {
