@@ -166,36 +166,34 @@ pub const CPU = struct {
                 // ADC
                 0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {
                     self._adc(addressing_mode);
-                    continue;
                 },
 
                 // AND
                 0x29, 0x25, 0x35, 0x2D, 0x3D, 0x39, 0x21, 0x31 => {
                     self._and(addressing_mode);
-                    continue;
+                },
+
+                // ASL
+                0x0A, 0x06, 0x16, 0x0E, 0x1E => {
+                    self._asl(addressing_mode);
                 },
 
                 // BCS
                 0xB0 => {
                     self._bcs();
-                    continue;
                 },
 
                 // BRK
-                0x00 => {
-                    return;
-                },
+                0x00 => {},
 
                 // CLC
                 0x18 => {
                     self._clc();
-                    continue;
                 },
 
                 // LDA
                 0xA9, 0xA5, 0xB5, 0xAD, 0xBD, 0xB9, 0xA1, 0xB1 => {
                     self._lda(addressing_mode);
-                    continue;
                 },
 
                 // TAX
@@ -203,13 +201,13 @@ pub const CPU = struct {
                     self._tax();
                 },
 
-                0xE8 => { //INX
+                // INX
+                0xE8 => {
                     self._inx();
                 },
 
-                else => { // unknown instruction or already used data
-                    continue;
-                },
+                // unknown instruction or already used data
+                else => {},
             }
         }
     }
@@ -270,7 +268,27 @@ pub const CPU = struct {
         const address: u16 = self.getOperandAddress(mode);
         const value: u8 = self.memory.read8(address);
 
-        self.updateZeroAndNegativeFlag(value);
+        self.register_a = self.register_a & value;
+
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    // ASL: Arithmetic Shift Left
+    // A = C <- (A << 1) <- 0
+    // Flags: N, Z, C
+    fn _asl(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value: u16 = @intCast(u16, self.memory.read8(address) << 1);
+
+        self.setFlag(StatusFlag.C, value & 0xFF00 > 0);
+        self.setFlag(StatusFlag.Z, value & 0xFF00 == 0);
+        self.setFlag(StatusFlag.N, value & 0x8000 == 0);
+
+        if (mode == AddressingMode.Implied) {
+            //
+        } else {
+            //
+        }
     }
 
     fn _bcs(self: *CPU) void {
@@ -309,8 +327,6 @@ test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
     cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
-    // std.debug.assert(cpu.getFlag(StatusFlag.Z) == 0);
-    // std.debug.assert(cpu.getFlag(StatusFlag.N) == 0);
     std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
     std.debug.assert(cpu.status & 0b1000_0000 == 0);
 }
@@ -349,8 +365,18 @@ test "5_ops_working_together" {
 test "adc_different" {
     var cpu = CPU.init();
     cpu.loadAndRun(&[_]u8{ 0xA9, 0x12, 0x69, 0x12, 0x00 });
-    std.debug.warn("a = {X}\n", .{cpu.register_a});
     std.testing.expect(cpu.register_a == 0x24);
+}
+
+test "multiplication" {
+    var cpu = CPU.init();
+    cpu.loadAndRun(&[_]u8{
+        0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E,
+        0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18,
+        0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02,
+        0x00, 0xEA, 0xEA, 0xEA,
+    });
+    // std.testing.expect(cpu.register_a == 0x1E);
 }
 
 // test "status_flags" {
