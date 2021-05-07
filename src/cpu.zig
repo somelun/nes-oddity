@@ -277,17 +277,18 @@ pub const CPU = struct {
     // A = C <- (A << 1) <- 0
     // Flags: N, Z, C
     fn _asl(self: *CPU, mode: AddressingMode) void {
-        const address: u16 = self.getOperandAddress(mode);
-        const value: u16 = @intCast(u16, self.memory.read8(address) << 1);
-
-        self.setFlag(StatusFlag.C, value & 0xFF00 > 0);
-        self.setFlag(StatusFlag.Z, value & 0xFF00 == 0);
-        self.setFlag(StatusFlag.N, value & 0x8000 == 0);
-
-        if (mode == AddressingMode.Implied) {
-            //
+        if (mode == AddressingMode.Accumulator) {
+            self.setFlag(StatusFlag.C, (self.register_a >> 7) == 1);
+            self.register_a <<= 1;
+            self.updateZeroAndNegativeFlag(self.register_a);
         } else {
-            //
+            const address: u16 = self.getOperandAddress(mode);
+            var value: u8 = self.memory.read8(address) << 1;
+
+            self.setFlag(StatusFlag.C, (value >> 7) == 1);
+            value <<= 1;
+            self.updateZeroAndNegativeFlag(value);
+            self.memory.write8(address, value);
         }
     }
 
