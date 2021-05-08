@@ -163,89 +163,99 @@ pub const CPU = struct {
             const addressing_mode = opcode.?.addressing_mode;
 
             switch (value) {
-                // ADC
+                // ADC: Add Memory to Accumulator with Carry
                 0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {
                     self._adc(addressing_mode);
                 },
 
-                // AND
+                // AND: AND Memory with Accumulator
                 0x29, 0x25, 0x35, 0x2D, 0x3D, 0x39, 0x21, 0x31 => {
                     self._and(addressing_mode);
                 },
 
-                // ASL
+                // ASL: Shift Left One Bit (Memory or Accumulator)
                 0x0A, 0x06, 0x16, 0x0E, 0x1E => {
                     self._asl(addressing_mode);
                 },
 
-                // BCC
+                // BCC: Branch on Carry Clear
                 0x90 => {
                     self._bcc();
                 },
 
-                // BCS
+                // BCS: Branch on Carry Set
                 0xB0 => {
                     self._bcs();
                 },
 
-                // BEQ
+                // BEQ: Branch on Result Zero
                 0xF0 => {
                     self._beq();
                 },
 
-                // BIT
+                // BIT: Test Bits in Memory with Accumulator
                 0x24, 0x2C => {
                     self._bit(addressing_mode);
                 },
 
-                // BIM
+                // BMI: Branch on Result Minus
                 0x30 => {
                     self._bmi();
                 },
 
-                // BNE
+                // BNE: Branch on Result not Zero
                 0xD0 => {
                     self._bne();
                 },
 
-                // BPL
+                // BPL: Branch on Result Plus
                 0x10 => {
                     self._bpl();
                 },
 
-                // BRK
+                // BRK: Force Break
                 0x00 => {
                     return;
                 },
 
-                // BVC
+                // BVC: Branch on Overflow Clear
                 0x50 => {
                     self._bvc();
                 },
 
-                // BVS
+                // BVS: Branch on Overflow Set
                 0x70 => {
                     self._bvs();
                 },
 
-                // CLC
+                // CLC: Clear Carry Flag
                 0x18 => {
                     self._clc();
                 },
 
-                // CLD
+                // CLD: Clear Decimal Mode
                 0xD8 => {
                     self._cld();
                 },
 
-                // CLI
+                // CLI: Clear Interrupt Disable Bit
                 0x58 => {
                     self._cli();
                 },
 
-                // CLV
+                // CLV: Clear Overflow Flag
                 0xB8 => {
                     self._clv();
+                },
+
+                // CMP: Compare Memory with Accumulator
+                0xC9, 0xC5, 0xD5, 0xCD, 0xDD, 0xD9, 0xC1, 0xD1 => {
+                    self._cmp(addressing_mode);
+                },
+
+                // CPX
+                0xE0, 0xE4, 0xEC => {
+                    self._cpx(addressing_mode);
                 },
 
                 // LDA
@@ -445,6 +455,18 @@ pub const CPU = struct {
     fn _clv(self: *CPU) void {
         self.setFlag(StatusFlag.V, false);
     }
+
+    fn _cmp(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        var value = self.memory.read8(address);
+
+        value = self.register_a -% value;
+
+        self.setFlag(StatusFlag.C, self.register_a >= value);
+        self.updateZeroAndNegativeFlag(value);
+    }
+
+    fn _cpx(self: *CPU, mode: AddressingMode) void {}
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
