@@ -178,9 +178,19 @@ pub const CPU = struct {
                     self._asl(addressing_mode);
                 },
 
+                // BCC
+                0x90 => {
+                    self._bcc();
+                },
+
                 // BCS
                 0xB0 => {
                     self._bcs();
+                },
+
+                // BEQ
+                0xF0 => {
+                    self._beq();
                 },
 
                 // BRK
@@ -292,9 +302,30 @@ pub const CPU = struct {
         }
     }
 
+    fn _bcc(self: *CPU) void {
+        if (self.getFlag(StatusFlag.C) == 0) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
     fn _bcs(self: *CPU) void {
-        if (self.getFlag(StatusFlag.C) > 0) {
-            //
+        if (self.getFlag(StatusFlag.C) == 1) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
+    fn _beq(self: *CPU) void {
+        if (self.getFlag(StatusFlag.Z) == 1) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
         }
     }
 
