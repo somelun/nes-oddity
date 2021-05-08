@@ -193,12 +193,59 @@ pub const CPU = struct {
                     self._beq();
                 },
 
+                // BIT
+                0x24, 0x2C => {
+                    self._bit(addressing_mode);
+                },
+
+                // BIM
+                0x30 => {
+                    self._bmi();
+                },
+
+                // BNE
+                0xD0 => {
+                    self._bne();
+                },
+
+                // BPL
+                0x10 => {
+                    self._bpl();
+                },
+
                 // BRK
-                0x00 => {},
+                0x00 => {
+                    return;
+                },
+
+                // BVC
+                0x50 => {
+                    self._bvc();
+                },
+
+                // BVS
+                0x70 => {
+                    self._bvs();
+                },
 
                 // CLC
                 0x18 => {
                     self._clc();
+                },
+
+                // CLD
+                0xD8 => {
+                    self._cld();
+                },
+
+                // CLI
+                0x58 => {
+                    self._cli();
+                },
+
+                // CLV
+                0xB8 => {
+                    self._clv();
                 },
 
                 // LDA
@@ -329,8 +376,74 @@ pub const CPU = struct {
         }
     }
 
+    fn _bit(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value: u8 = self.register_a & self.memory.read8(address);
+
+        self.setFlag(StatusFlag.Z, value == 0);
+        self.setFlag(StatusFlag.V, (value >> 6) > 0);
+        self.setFlag(StatusFlag.N, (value >> 7) > 0);
+    }
+
+    fn _bmi(self: *CPU) void {
+        if (self.getFlag(StatusFlag.N) == 1) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
+    fn _bne(self: *CPU) void {
+        if (self.getFlag(StatusFlag.Z) == 0) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
+    fn _bpl(self: *CPU) void {
+        if (self.getFlag(StatusFlag.N) == 0) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
+    fn _bvc(self: *CPU) void {
+        if (self.getFlag(StatusFlag.V) == 0) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
+    fn _bvs(self: *CPU) void {
+        if (self.getFlag(StatusFlag.V) == 1) {
+            const jump: u8 = self.memory.read8(self.program_counter);
+            const jump_address = self.program_counter +% @intCast(u16, jump);
+
+            self.program_counter = jump_address;
+        }
+    }
+
     fn _clc(self: *CPU) void {
         self.setFlag(StatusFlag.C, false);
+    }
+
+    fn _cld(self: *CPU) void {
+        self.setFlag(StatusFlag.D, false);
+    }
+
+    fn _cli(self: *CPU) void {
+        self.setFlag(StatusFlag.I, false);
+    }
+
+    fn _clv(self: *CPU) void {
+        self.setFlag(StatusFlag.V, false);
     }
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
