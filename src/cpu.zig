@@ -520,7 +520,7 @@ pub const CPU = struct {
             self.updateZeroAndNegativeFlag(self.register_a);
         } else {
             const address: u16 = self.getOperandAddress(mode);
-            var value: u8 = self.memory.read8(address) << 1;
+            var value: u8 = self.memory.read8(address);
 
             self.setFlag(StatusFlag.C, (value >> 7) == 1);
             value <<= 1;
@@ -705,6 +705,7 @@ pub const CPU = struct {
         self.program_counter = address;
     }
 
+    // TODO:
     fn _jsr(self: *CPU) void {}
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
@@ -731,19 +732,48 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_y);
     }
 
-    fn _lsr(self: *CPU, mode: AddressingMode) void {}
+    fn _lsr(self: *CPU, mode: AddressingMode) void {
+        if (mode == AddressingMode.Accumulator) {
+            self.setFlag(StatusFlag.C, self.register_a == 1);
+            self.register_a >>= 1;
+            self.updateZeroAndNegativeFlag(self.register_a);
+        } else {
+            const address: u16 = self.getOperandAddress(mode);
+            var value: u8 = self.memory.read8(address);
 
-    fn _ora(self: *CPU, mode: AddressingMode) void {}
+            self.setFlag(StatusFlag.C, value == 1);
+            value >>= 1;
+            self.updateZeroAndNegativeFlag(value);
+            self.memory.write8(address, value);
+        }
+    }
 
+    fn _ora(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value = self.memory.read8(address);
+
+        self.register_a |= value;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    // TODO:
     fn _pha(self: *CPU) void {}
 
+    // TODO:
     fn _php(self: *CPU) void {}
 
+    // TODO:
     fn _pla(self: *CPU) void {}
 
+    // TODO:
     fn _plp(self: *CPU) void {}
 
-    fn _rol(self: *CPU, mode: AddressingMode) void {}
+    fn _rol(self: *CPU, mode: AddressingMode) void {
+        if (mode == AddressingMode.Accumulator) {} else {}
+
+        const address: u16 = self.getOperandAddress(mode);
+        var value: u8 = self.memory.read8(address);
+    }
 
     fn _ror(self: *CPU, mode: AddressingMode) void {}
 
@@ -775,13 +805,24 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_y);
     }
 
-    fn _tsx(self: *CPU) void {}
+    fn _tsx(self: *CPU) void {
+        // self.register_x = self.register_a;
+        self.updateZeroAndNegativeFlag(self.register_x);
+    }
 
-    fn _txa(self: *CPU) void {}
+    fn _txa(self: *CPU) void {
+        self.register_a = self.register_x;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
 
-    fn _txs(self: *CPU) void {}
+    fn _txs(self: *CPU) void {
+        self.stack_pointer = self.register_x;
+    }
 
-    fn _tya(self: *CPU) void {}
+    fn _tya(self: *CPU) void {
+        self.register_a = self.register_y;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
 };
 
 ///////////////////////////////////////////////////////////
