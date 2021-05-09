@@ -7,6 +7,7 @@ const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
 
+// TODO: remove this magic number?
 const program_counter_address: u16 = 0xFFFC;
 
 const StatusFlag = enum(u8) {
@@ -59,6 +60,8 @@ pub const CPU = struct {
         self.memory.write16(program_counter_address, 0x8000);
     }
 
+    // returns address for the next operand using addressing mode,
+    // some instuctions have few modes for the same opcode
     fn getOperandAddress(self: *CPU, mode: AddressingMode) u16 {
         var address: u16 = undefined;
 
@@ -510,9 +513,6 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
-    // ASL: Arithmetic Shift Left
-    // A = C <- (A << 1) <- 0
-    // Flags: N, Z, C
     fn _asl(self: *CPU, mode: AddressingMode) void {
         if (mode == AddressingMode.Accumulator) {
             self.setFlag(StatusFlag.C, (self.register_a >> 7) == 1);
@@ -636,28 +636,74 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(value);
     }
 
-    fn _cpx(self: *CPU, mode: AddressingMode) void {}
+    fn _cpx(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        var value = self.memory.read8(address);
 
-    fn _cpy(self: *CPU, mode: AddressingMode) void {}
+        value = self.register_x -% value;
+        self.setFlag(StatusFlag.C, value >= 0x80);
+        self.updateZeroAndNegativeFlag(value);
+    }
 
-    fn _dec(self: *CPU, mode: AddressingMode) void {}
+    fn _cpy(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        var value = self.memory.read8(address);
 
-    fn _dex(self: *CPU) void {}
+        value = self.register_y -% value;
+        self.setFlag(StatusFlag.C, value >= 0x80);
+        self.updateZeroAndNegativeFlag(value);
+    }
 
-    fn _dey(self: *CPU) void {}
+    fn _dec(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        var value = self.memory.read8(address);
 
-    fn _eor(self: *CPU, mode: AddressingMode) void {}
+        value -%= 1;
+        self.memory.write8(address, value);
+        self.updateZeroAndNegativeFlag(value);
+    }
 
-    fn _inc(self: *CPU, mode: AddressingMode) void {}
+    fn _dex(self: *CPU) void {
+        self.register_x -%= 1;
+        self.updateZeroAndNegativeFlag(self.register_x);
+    }
+
+    fn _dey(self: *CPU) void {
+        self.register_y -%= 1;
+        self.updateZeroAndNegativeFlag(self.register_y);
+    }
+
+    fn _eor(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value = self.memory.read8(address);
+
+        self.register_a ^= value;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    fn _inc(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        var value = self.memory.read8(address);
+
+        value +%= 1;
+        self.memory.write8(address, value);
+        self.updateZeroAndNegativeFlag(value);
+    }
 
     fn _inx(self: *CPU) void {
         self.register_x +%= 1;
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
-    fn _iny(self: *CPU) void {}
+    fn _iny(self: *CPU) void {
+        self.register_y +%= 1;
+        self.updateZeroAndNegativeFlag(self.register_y);
+    }
 
-    fn _jmp(self: *CPU, mode: AddressingMode) void {}
+    fn _jmp(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        self.program_counter = address;
+    }
 
     fn _jsr(self: *CPU) void {}
 
@@ -669,9 +715,21 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
-    fn _ldx(self: *CPU, mode: AddressingMode) void {}
+    fn _ldx(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value = self.memory.read8(address);
 
-    fn _ldy(self: *CPU, mode: AddressingMode) void {}
+        self.register_x = value;
+        self.updateZeroAndNegativeFlag(self.register_x);
+    }
+
+    fn _ldy(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const value = self.memory.read8(address);
+
+        self.register_y = value;
+        self.updateZeroAndNegativeFlag(self.register_y);
+    }
 
     fn _lsr(self: *CPU, mode: AddressingMode) void {}
 
@@ -712,7 +770,10 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
-    fn _tay(self: *CPU) void {}
+    fn _tay(self: *CPU) void {
+        self.register_y = self.register_a;
+        self.updateZeroAndNegativeFlag(self.register_y);
+    }
 
     fn _tsx(self: *CPU) void {}
 
@@ -781,15 +842,3 @@ test "multiplication" {
     });
     // std.testing.expect(cpu.register_a == 0x1E);
 }
-
-// test "status_flags" {
-//     var cpu = CPU.init();
-//     std.debug.warn("before {b}\n", .{cpu.status});
-//     const t: u8 = 0;
-//     cpu.setFlag(StatusFlag.Z, 1);
-//     cpu.setFlag(StatusFlag.N, 1);
-//
-//     cpu.setFlag(StatusFlag.C, 1);
-//
-//     std.debug.warn("after {b}\n", .{cpu.status});
-// }
