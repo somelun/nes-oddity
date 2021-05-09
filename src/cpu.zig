@@ -253,24 +253,194 @@ pub const CPU = struct {
                     self._cmp(addressing_mode);
                 },
 
-                // CPX
+                // CPX: Compare Memory and Index X
                 0xE0, 0xE4, 0xEC => {
                     self._cpx(addressing_mode);
                 },
 
-                // LDA
+                // CPY: Compare Memory and Index Y
+                0xC0, 0xC4, 0xCC => {
+                    self._cpy(addressing_mode);
+                },
+
+                // DEC: Decrement Memory by One
+                0xC6, 0xD6, 0xCE, 0xDE => {
+                    self._dec(addressing_mode);
+                },
+
+                // DEX: Decrement Index X by One
+                0xCA => {
+                    self._dex();
+                },
+
+                // DEY: Decrement Index Y by One
+                0x88 => {
+                    self._dey();
+                },
+
+                // EOR: Exclusive-OR Memory with Accumulator
+                0x49, 0x45, 0x55, 0x4D, 0x5D, 0x59, 0x41, 0x51 => {
+                    self._eor(addressing_mode);
+                },
+
+                // INC: Increment Memory by One
+                0xE6, 0xF6, 0xEE, 0xFE => {
+                    self._inc(addressing_mode);
+                },
+
+                // INX: Increment Index X by One
+                0xE8 => {
+                    self._inx();
+                },
+
+                // INY: Increment Index Y by One
+                0xC8 => {
+                    self._iny();
+                },
+
+                // JMP: Jump to New Location
+                0x4C, 0x6C => {
+                    self._jmp(addressing_mode);
+                },
+
+                // JSR: Jump to New Location Saving Return Address
+                0x20 => {
+                    self._jsr();
+                },
+
+                // LDA: Load Accumulator with Memory
                 0xA9, 0xA5, 0xB5, 0xAD, 0xBD, 0xB9, 0xA1, 0xB1 => {
                     self._lda(addressing_mode);
                 },
 
-                // TAX
+                // LDX: Load Index X with Memory
+                0xA2, 0xA6, 0xB6, 0xAE, 0xBE => {
+                    self._ldx(addressing_mode);
+                },
+
+                // LDY: Load Index Y with Memory
+                0xA0, 0xA4, 0xB4, 0xAC, 0xBC => {
+                    self._ldy(addressing_mode);
+                },
+
+                // LSR: Shift One Bit Right (Memory or Accumulator)
+                0x4A, 0x46, 0x56, 0x4E, 0x5E => {
+                    self._lsr(addressing_mode);
+                },
+
+                // NOP: No Operation
+                0xEA => {
+                    continue;
+                },
+
+                // ORA: OR Memory with Accumulator
+                0x09, 0x05, 0x15, 0x0D, 0x1D, 0x19, 0x01, 0x11 => {
+                    self._ora(addressing_mode);
+                },
+
+                // PHA: Push Accumulator on Stack
+                0x48 => {
+                    self._pha();
+                },
+
+                // PHP: Push Processor Status on Stack
+                0x08 => {
+                    self._php();
+                },
+
+                // PLA: Pull Accumulator from Stack
+                0x68 => {
+                    self._pla();
+                },
+
+                // PLP: Pull Prepcessor Status from Stack
+                0x28 => {
+                    self._plp();
+                },
+
+                // ROL: Rotate One Bit Left (Memory or Accumulator)
+                0x2A, 0x26, 0x36, 0x2E, 0x3E => {
+                    self._rol(addressing_mode);
+                },
+
+                // ROR: Rotate One Bit Right (Memory or Accumulator)
+                0x6A, 0x66, 0x76, 0x6E, 0x7E => {
+                    self._ror(addressing_mode);
+                },
+
+                // RTI: Return from Interrupt
+                0x40 => {
+                    self._rti();
+                },
+
+                // RTS: Return fromm Subroutine
+                0x60 => {
+                    self._rts();
+                },
+
+                // SBC: Subtract Memory from Accumulator with Borrow
+                0xE9, 0xE5, 0xF5, 0xED, 0xFD, 0xF9, 0xE1, 0xF1 => {
+                    self._sbc(addressing_mode);
+                },
+
+                // SEC: Set Carry Flag
+                0x38 => {
+                    self._sec();
+                },
+
+                // SED: Set Decimal Flag
+                0xF8 => {
+                    self._sed();
+                },
+
+                // SEI: Set Interrupt Disable Flag
+                0x78 => {
+                    self._sei();
+                },
+
+                // STA: Store Accumulator in Memory
+                0x85, 0x95, 0x8D, 0x9D, 0x99, 0x81, 0x91 => {
+                    self._sta(addressing_mode);
+                },
+
+                // STX: Store Index X in Memory
+                0x86, 0x96, 0x8E => {
+                    self._stx(addressing_mode);
+                },
+
+                // STY: Store Index Y in Memory
+                0x84, 0x94, 0x8C => {
+                    self._sty(addressing_mode);
+                },
+
+                // TAX: Transfer Accumulator to Index X
                 0xAA => {
                     self._tax();
                 },
 
-                // INX
-                0xE8 => {
-                    self._inx();
+                // TAY: Transfer Accumulator to Index Y
+                0xA8 => {
+                    self._tay();
+                },
+
+                // TSX: Transfer Stack Pointer to Index X
+                0xBA => {
+                    self._tsx();
+                },
+
+                // TXA: Transfer Index X to Accumulator
+                0x8A => {
+                    self._txa();
+                },
+
+                // TXS: Transfer Index X to Stack Pointer
+                0x9A => {
+                    self._txs();
+                },
+
+                // TYA: Transfer Index Y to Accumulator
+                0x98 => {
+                    self._tya();
                 },
 
                 // unknown instruction or already used data
@@ -468,6 +638,29 @@ pub const CPU = struct {
 
     fn _cpx(self: *CPU, mode: AddressingMode) void {}
 
+    fn _cpy(self: *CPU, mode: AddressingMode) void {}
+
+    fn _dec(self: *CPU, mode: AddressingMode) void {}
+
+    fn _dex(self: *CPU) void {}
+
+    fn _dey(self: *CPU) void {}
+
+    fn _eor(self: *CPU, mode: AddressingMode) void {}
+
+    fn _inc(self: *CPU, mode: AddressingMode) void {}
+
+    fn _inx(self: *CPU) void {
+        self.register_x +%= 1;
+        self.updateZeroAndNegativeFlag(self.register_x);
+    }
+
+    fn _iny(self: *CPU) void {}
+
+    fn _jmp(self: *CPU, mode: AddressingMode) void {}
+
+    fn _jsr(self: *CPU) void {}
+
     fn _lda(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
         const value = self.memory.read8(address);
@@ -476,15 +669,58 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
+    fn _ldx(self: *CPU, mode: AddressingMode) void {}
+
+    fn _ldy(self: *CPU, mode: AddressingMode) void {}
+
+    fn _lsr(self: *CPU, mode: AddressingMode) void {}
+
+    fn _ora(self: *CPU, mode: AddressingMode) void {}
+
+    fn _pha(self: *CPU) void {}
+
+    fn _php(self: *CPU) void {}
+
+    fn _pla(self: *CPU) void {}
+
+    fn _plp(self: *CPU) void {}
+
+    fn _rol(self: *CPU, mode: AddressingMode) void {}
+
+    fn _ror(self: *CPU, mode: AddressingMode) void {}
+
+    fn _rti(self: *CPU) void {}
+
+    fn _rts(self: *CPU) void {}
+
+    fn _sbc(self: *CPU, mode: AddressingMode) void {}
+
+    fn _sec(self: *CPU) void {}
+
+    fn _sed(self: *CPU) void {}
+
+    fn _sei(self: *CPU) void {}
+
+    fn _sta(self: *CPU, mode: AddressingMode) void {}
+
+    fn _stx(self: *CPU, mode: AddressingMode) void {}
+
+    fn _sty(self: *CPU, mode: AddressingMode) void {}
+
     fn _tax(self: *CPU) void {
         self.register_x = self.register_a;
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
-    fn _inx(self: *CPU) void {
-        self.register_x +%= 1;
-        self.updateZeroAndNegativeFlag(self.register_x);
-    }
+    fn _tay(self: *CPU) void {}
+
+    fn _tsx(self: *CPU) void {}
+
+    fn _txa(self: *CPU) void {}
+
+    fn _txs(self: *CPU) void {}
+
+    fn _tya(self: *CPU) void {}
 };
 
 ///////////////////////////////////////////////////////////
