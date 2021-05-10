@@ -2,6 +2,7 @@ const mem = @import("std").mem;
 
 pub const RAM = struct {
     memory: [0xFFFF]u8 = [_]u8{0} ** 0xFFFF,
+    stack_pointer: u8 = 0xFD,
 
     pub fn init() RAM {
         return RAM{};
@@ -26,6 +27,26 @@ pub const RAM = struct {
         const lo = @intCast(u8, data & 0xFF);
         self.write8(address, lo);
         self.write8(address + 1, hi);
+    }
+
+    pub fn pushToStack(self: *RAM, value: u8) void {
+        self.write8(0x0100 + @intCast(u16, self.stack_pointer), value);
+        self.decrementStackPointer();
+    }
+
+    pub fn popFromStack(self: *RAM) u8 {
+        self.incrementStackPointer();
+        return self.read8(0x0100 + @intCast(u16, self.stack_pointer));
+    }
+
+    pub fn incrementStackPointer(self: *RAM) void {
+        self.stack_pointer += 1;
+        self.stack_pointer &= 0xFF;
+    }
+
+    pub fn decrementStackPointer(self: *RAM) void {
+        self.stack_pointer -= 1;
+        self.stack_pointer &= 0xFF;
     }
 
     pub fn loadProgram(self: *RAM, program_code: []const u8) void {

@@ -705,8 +705,9 @@ pub const CPU = struct {
         self.program_counter = address;
     }
 
-    // TODO:
-    fn _jsr(self: *CPU) void {}
+    fn _jsr(self: *CPU) void {
+        //
+    }
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
@@ -756,17 +757,21 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
-    // TODO:
-    fn _pha(self: *CPU) void {}
+    fn _pha(self: *CPU) void {
+        self.memory.pushToStack(self.register_a);
+    }
 
-    // TODO:
-    fn _php(self: *CPU) void {}
+    fn _php(self: *CPU) void {
+        self.memory.pushToStack(self.status);
+    }
 
-    // TODO:
-    fn _pla(self: *CPU) void {}
+    fn _pla(self: *CPU) void {
+        self.register_a = self.memory.popFromStack();
+    }
 
-    // TODO:
-    fn _plp(self: *CPU) void {}
+    fn _plp(self: *CPU) void {
+        self.status = self.memory.popFromStack();
+    }
 
     fn _rol(self: *CPU, mode: AddressingMode) void {
         if (mode == AddressingMode.Accumulator) {} else {}
@@ -783,17 +788,32 @@ pub const CPU = struct {
 
     fn _sbc(self: *CPU, mode: AddressingMode) void {}
 
-    fn _sec(self: *CPU) void {}
+    fn _sec(self: *CPU) void {
+        self.setFlag(StatusFlag.C, true);
+    }
 
-    fn _sed(self: *CPU) void {}
+    fn _sed(self: *CPU) void {
+        self.setFlag(StatusFlag.D, true);
+    }
 
-    fn _sei(self: *CPU) void {}
+    fn _sei(self: *CPU) void {
+        self.setFlag(StatusFlag.I, true);
+    }
 
-    fn _sta(self: *CPU, mode: AddressingMode) void {}
+    fn _sta(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        self.memory.write8(address, self.register_a);
+    }
 
-    fn _stx(self: *CPU, mode: AddressingMode) void {}
+    fn _stx(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        self.memory.write8(address, self.register_x);
+    }
 
-    fn _sty(self: *CPU, mode: AddressingMode) void {}
+    fn _sty(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        self.memory.write8(address, self.register_y);
+    }
 
     fn _tax(self: *CPU) void {
         self.register_x = self.register_a;
@@ -806,7 +826,7 @@ pub const CPU = struct {
     }
 
     fn _tsx(self: *CPU) void {
-        // self.register_x = self.register_a;
+        self.register_x = self.memory.popFromStack();
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
