@@ -497,15 +497,14 @@ pub const CPU = struct {
     fn _adc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
         const fetched: u16 = @intCast(u16, self.memory.read8(address));
-        const value: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
 
-        self.setFlag(StatusFlag.C, value > 255);
+        const result: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
 
-        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ value)) & 0x0080 != 0);
+        self.setFlag(StatusFlag.C, result > 0xFF);
+        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        self.updateZeroAndNegativeFlag(@intCast(u8, result & 0x00FF));
 
-        self.updateZeroAndNegativeFlag(@intCast(u8, value & 0x00FF));
-
-        self.register_a = @intCast(u8, value & 0x00FF);
+        self.register_a = @intCast(u8, result & 0x00FF);
     }
 
     fn _and(self: *CPU, mode: AddressingMode) void {
@@ -720,25 +719,22 @@ pub const CPU = struct {
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value = self.memory.read8(address);
+        self.register_a = self.memory.read8(address);
 
-        self.register_a = value;
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
     fn _ldx(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value = self.memory.read8(address);
+        self.register_x = self.memory.read8(address);
 
-        self.register_x = value;
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
     fn _ldy(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value = self.memory.read8(address);
+        self.register_y = self.memory.read8(address);
 
-        self.register_y = value;
         self.updateZeroAndNegativeFlag(self.register_y);
     }
 
@@ -795,7 +791,18 @@ pub const CPU = struct {
 
     fn _rts(self: *CPU) void {}
 
-    fn _sbc(self: *CPU, mode: AddressingMode) void {}
+    fn _sbc(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const fetched: u16 = @intCast(u16, self.memory.read8(address)) ^ 0x00FF;
+
+        const result: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
+
+        self.setFlag(StatusFlag.C, result > 0xFF);
+        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        self.updateZeroAndNegativeFlag(@intCast(u8, result & 0x00FF));
+
+        self.register_a = @intCast(u8, result & 0x00FF);
+    }
 
     fn _sec(self: *CPU) void {
         self.setFlag(StatusFlag.C, true);
