@@ -18,7 +18,7 @@ pub const RAM = struct {
 
     pub fn read16(self: *RAM, address: u16) u16 {
         const lo: u16 = self.read8(address);
-        const hi: u16 = self.read8(address + 1);
+        const hi: u16 = self.read8(address + 1); //TODO: check maybe + should be %+
         return (hi << 8) | (lo);
     }
 

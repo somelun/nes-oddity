@@ -97,8 +97,10 @@ pub const CPU = struct {
                 self.program_counter += 1;
 
                 address = self.program_counter + offset;
-                if (offset >= 0x80) {
-                    address -= 0x0100;
+
+                // if the offset is negative
+                if (offset > 0x7F) {
+                    address |= 0xFF00;
                 }
             },
 
@@ -121,11 +123,13 @@ pub const CPU = struct {
                 const ptr: u16 = self.memory.read16(self.program_counter);
                 self.program_counter += 2;
 
-                // TODO: test this
+                // emulating hardware bug, if low byte is 0xFF, usually we read hight byte of
+                // actual address from another page, but this chip wraps address back to the
+                // same page TODO: test this please
                 if (ptr & 0x00FF == 0x00FF) {
-                    address = (@intCast(u16, self.memory.read8(ptr & 0xFF00)) << 8) | self.memory.read8(ptr + 0);
+                    address = (@intCast(u16, self.memory.read8(ptr & 0xFF00)) << 8) | self.memory.read8(ptr);
                 } else {
-                    address = (@intCast(u16, self.memory.read8(ptr + 1)) << 8) | self.memory.read8(ptr + 0);
+                    address = (@intCast(u16, self.memory.read8(ptr + 1)) << 8) | self.memory.read8(ptr);
                 }
             },
 
@@ -706,7 +710,12 @@ pub const CPU = struct {
     }
 
     fn _jsr(self: *CPU) void {
-        //
+        // const value: u16 = self.program_counter;
+        // const lo: u8 = @intCast(u8, (value >> 8) & 0xFF);
+        // const hi: u8 = @intCast(u8, value & 0xFF);
+        // self.memory.pushToStack(lo);
+        // self.memory.pushToStack(hi);
+        // self.program_counter = self.memory;
     }
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
