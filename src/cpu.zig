@@ -187,7 +187,7 @@ pub const CPU = struct {
 
                 // BCC: Branch on Carry Clear
                 0x90 => {
-                    self._bcc();
+                    self._bcc(addressing_mode);
                 },
 
                 // BCS: Branch on Carry Set
@@ -312,7 +312,7 @@ pub const CPU = struct {
 
                 // JSR: Jump to New Location Saving Return Address
                 0x20 => {
-                    self._jsr();
+                    self._jsr(addressing_mode);
                 },
 
                 // LDA: Load Accumulator with Memory
@@ -530,84 +530,61 @@ pub const CPU = struct {
         }
     }
 
-    fn _bcc(self: *CPU) void {
+    fn _bcc(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.C) == 0) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _bcs(self: *CPU) void {
         if (self.getFlag(StatusFlag.C) == 1) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _beq(self: *CPU) void {
         if (self.getFlag(StatusFlag.Z) == 1) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _bit(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value: u8 = self.register_a & self.memory.read8(address);
+        const fetched = self.memory.read8(address);
+        const value: u8 = self.register_a & fetched;
 
         self.setFlag(StatusFlag.Z, value == 0);
-        self.setFlag(StatusFlag.V, (value >> 6) > 0);
-        self.setFlag(StatusFlag.N, (value >> 7) > 0);
+        self.setFlag(StatusFlag.V, (fetched >> 6) > 0);
+        self.setFlag(StatusFlag.N, (fetched >> 7) > 0);
     }
 
     fn _bmi(self: *CPU) void {
         if (self.getFlag(StatusFlag.N) == 1) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _bne(self: *CPU) void {
         if (self.getFlag(StatusFlag.Z) == 0) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _bpl(self: *CPU) void {
         if (self.getFlag(StatusFlag.N) == 0) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _bvc(self: *CPU) void {
         if (self.getFlag(StatusFlag.V) == 0) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
     fn _bvs(self: *CPU) void {
         if (self.getFlag(StatusFlag.V) == 1) {
-            const jump: u8 = self.memory.read8(self.program_counter);
-            const jump_address = self.program_counter +% @intCast(u16, jump);
-
-            self.program_counter = jump_address;
+            self.program_counter = self.getOperandAddress(mode);
         }
     }
 
@@ -629,30 +606,32 @@ pub const CPU = struct {
 
     fn _cmp(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var value = self.memory.read8(address);
+        const fetched = self.memory.read8(address);
 
-        value = self.register_a -% value;
+        const diff = self.register_a -% fetched;
 
-        self.setFlag(StatusFlag.C, self.register_a >= value);
-        self.updateZeroAndNegativeFlag(value);
+        self.setFlag(StatusFlag.C, self.register_a >= fetched);
+        self.updateZeroAndNegativeFlag(diff);
     }
 
     fn _cpx(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var value = self.memory.read8(address);
+        const fetched = self.memory.read8(address);
 
-        value = self.register_x -% value;
-        self.setFlag(StatusFlag.C, value >= 0x80);
-        self.updateZeroAndNegativeFlag(value);
+        const diff = self.register_x -% fetched;
+
+        self.setFlag(StatusFlag.C, self.register_x >= fetched);
+        self.updateZeroAndNegativeFlag(diff);
     }
 
     fn _cpy(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var value = self.memory.read8(address);
+        const fetched = self.memory.read8(address);
 
-        value = self.register_y -% value;
-        self.setFlag(StatusFlag.C, value >= 0x80);
-        self.updateZeroAndNegativeFlag(value);
+        const diff = self.register_y -% fetched;
+
+        self.setFlag(StatusFlag.C, self.register_y >= fetched);
+        self.updateZeroAndNegativeFlag(diff);
     }
 
     fn _dec(self: *CPU, mode: AddressingMode) void {
@@ -703,7 +682,7 @@ pub const CPU = struct {
         self.program_counter = address;
     }
 
-    fn _jsr(self: *CPU) void {
+    fn _jsr(self: *CPU, mode: AddressingMode) void {
         // const value: u16 = self.program_counter;
         // const lo: u8 = @intCast(u8, (value >> 8) & 0xFF);
         // const hi: u8 = @intCast(u8, value & 0xFF);
