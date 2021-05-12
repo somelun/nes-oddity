@@ -794,19 +794,19 @@ pub const CPU = struct {
     }
 
     fn _rti(self: *CPU) void {
-        self.status = self.ram.pop_from_stack();
+        self.status = self.memory.popFromStack();
 
         // TODO: this is just a copy-paste from the internet,
         // tests required
-        const hi: u8 = self.ram.pop_from_stack();
-        const lo: u8 = self.ram.pop_from_stack();
+        const hi: u8 = self.memory.popFromStack();
+        const lo: u8 = self.memory.popFromStack();
 
         self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
     }
 
     fn _rts(self: *CPU) void {
-        const hi: u8 = self.ram.pop_from_stack();
-        const lo: u8 = self.ram.pop_from_stack();
+        const hi: u8 = self.memory.popFromStack();
+        const lo: u8 = self.memory.popFromStack();
 
         self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
     }
