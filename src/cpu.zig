@@ -685,12 +685,14 @@ pub const CPU = struct {
     }
 
     fn _jsr(self: *CPU, mode: AddressingMode) void {
-        // const value: u16 = self.program_counter;
-        // const lo: u8 = @intCast(u8, (value >> 8) & 0xFF);
-        // const hi: u8 = @intCast(u8, value & 0xFF);
-        // self.memory.pushToStack(lo);
-        // self.memory.pushToStack(hi);
-        // self.program_counter = self.memory;
+        const address: u16 = self.getOperandAddress(mode);
+
+        const lo: u8 = @intCast(u8, (self.program_counter >> 8) & 0xFF);
+        const hi: u8 = @intCast(u8, self.program_counter & 0xFF);
+        self.memory.pushToStack(lo);
+        self.memory.pushToStack(hi);
+
+        self.program_counter = address;
     }
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
@@ -791,9 +793,23 @@ pub const CPU = struct {
         }
     }
 
-    fn _rti(self: *CPU) void {}
+    fn _rti(self: *CPU) void {
+        self.status = self.ram.pop_from_stack();
 
-    fn _rts(self: *CPU) void {}
+        // TODO: this is just a copy-paste from the internet,
+        // tests required
+        const hi: u8 = self.ram.pop_from_stack();
+        const lo: u8 = self.ram.pop_from_stack();
+
+        self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
+    }
+
+    fn _rts(self: *CPU) void {
+        const hi: u8 = self.ram.pop_from_stack();
+        const lo: u8 = self.ram.pop_from_stack();
+
+        self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
+    }
 
     fn _sbc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
