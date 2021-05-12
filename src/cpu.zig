@@ -192,12 +192,12 @@ pub const CPU = struct {
 
                 // BCS: Branch on Carry Set
                 0xB0 => {
-                    self._bcs();
+                    self._bcs(addressing_mode);
                 },
 
                 // BEQ: Branch on Result Zero
                 0xF0 => {
-                    self._beq();
+                    self._beq(addressing_mode);
                 },
 
                 // BIT: Test Bits in Memory with Accumulator
@@ -207,17 +207,17 @@ pub const CPU = struct {
 
                 // BMI: Branch on Result Minus
                 0x30 => {
-                    self._bmi();
+                    self._bmi(addressing_mode);
                 },
 
                 // BNE: Branch on Result not Zero
                 0xD0 => {
-                    self._bne();
+                    self._bne(addressing_mode);
                 },
 
                 // BPL: Branch on Result Plus
                 0x10 => {
-                    self._bpl();
+                    self._bpl(addressing_mode);
                 },
 
                 // BRK: Force Break
@@ -227,12 +227,12 @@ pub const CPU = struct {
 
                 // BVC: Branch on Overflow Clear
                 0x50 => {
-                    self._bvc();
+                    self._bvc(addressing_mode);
                 },
 
                 // BVS: Branch on Overflow Set
                 0x70 => {
-                    self._bvs();
+                    self._bvs(addressing_mode);
                 },
 
                 // CLC: Clear Carry Flag
@@ -518,15 +518,17 @@ pub const CPU = struct {
         if (mode == AddressingMode.Accumulator) {
             self.setFlag(StatusFlag.C, (self.register_a >> 7) == 1);
             self.register_a <<= 1;
+
             self.updateZeroAndNegativeFlag(self.register_a);
         } else {
             const address: u16 = self.getOperandAddress(mode);
-            var value: u8 = self.memory.read8(address);
+            var fetched: u8 = self.memory.read8(address);
 
-            self.setFlag(StatusFlag.C, (value >> 7) == 1);
-            value <<= 1;
-            self.updateZeroAndNegativeFlag(value);
-            self.memory.write8(address, value);
+            self.setFlag(StatusFlag.C, (fetched >> 7) == 1);
+            fetched <<= 1;
+
+            self.updateZeroAndNegativeFlag(fetched);
+            self.memory.write8(address, fetched);
         }
     }
 
@@ -536,13 +538,13 @@ pub const CPU = struct {
         }
     }
 
-    fn _bcs(self: *CPU) void {
+    fn _bcs(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.C) == 1) {
             self.program_counter = self.getOperandAddress(mode);
         }
     }
 
-    fn _beq(self: *CPU) void {
+    fn _beq(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.Z) == 1) {
             self.program_counter = self.getOperandAddress(mode);
         }
@@ -558,31 +560,31 @@ pub const CPU = struct {
         self.setFlag(StatusFlag.N, (fetched >> 7) > 0);
     }
 
-    fn _bmi(self: *CPU) void {
+    fn _bmi(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.N) == 1) {
             self.program_counter = self.getOperandAddress(mode);
         }
     }
 
-    fn _bne(self: *CPU) void {
+    fn _bne(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.Z) == 0) {
             self.program_counter = self.getOperandAddress(mode);
         }
     }
 
-    fn _bpl(self: *CPU) void {
+    fn _bpl(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.N) == 0) {
             self.program_counter = self.getOperandAddress(mode);
         }
     }
 
-    fn _bvc(self: *CPU) void {
+    fn _bvc(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.V) == 0) {
             self.program_counter = self.getOperandAddress(mode);
         }
     }
 
-    fn _bvs(self: *CPU) void {
+    fn _bvs(self: *CPU, mode: AddressingMode) void {
         if (self.getFlag(StatusFlag.V) == 1) {
             self.program_counter = self.getOperandAddress(mode);
         }
@@ -714,17 +716,17 @@ pub const CPU = struct {
 
     fn _lsr(self: *CPU, mode: AddressingMode) void {
         if (mode == AddressingMode.Accumulator) {
-            self.setFlag(StatusFlag.C, self.register_a == 1);
+            self.setFlag(StatusFlag.C, (self.register_a & 0x01) == 1);
             self.register_a >>= 1;
             self.updateZeroAndNegativeFlag(self.register_a);
         } else {
             const address: u16 = self.getOperandAddress(mode);
-            var value: u8 = self.memory.read8(address);
+            var fetched: u8 = self.memory.read8(address);
 
-            self.setFlag(StatusFlag.C, value == 1);
-            value >>= 1;
-            self.updateZeroAndNegativeFlag(value);
-            self.memory.write8(address, value);
+            self.setFlag(StatusFlag.C, (fetched & 0x01) == 1);
+            fetched >>= 1;
+            self.updateZeroAndNegativeFlag(fetched);
+            self.memory.write8(address, fetched);
         }
     }
 
@@ -752,13 +754,42 @@ pub const CPU = struct {
     }
 
     fn _rol(self: *CPU, mode: AddressingMode) void {
-        if (mode == AddressingMode.Accumulator) {} else {}
-
         const address: u16 = self.getOperandAddress(mode);
-        var value: u8 = self.memory.read8(address);
+        var fetched: u8 = self.memory.read8(address);
+
+        const old_carry_flag = self.getFlag(StatusFlag.C);
+
+        self.setFlag(StatusFlag.C, (fetched << 7) == 1);
+        fetched <<= 1;
+        fetched |= (old_carry_flag & 1);
+
+        self.updateZeroAndNegativeFlag(fetched);
+
+        if (mode == AddressingMode.Accumulator) {
+            self.register_a = fetched;
+        } else {
+            self.memory.write8(address, fetched);
+        }
     }
 
-    fn _ror(self: *CPU, mode: AddressingMode) void {}
+    fn _ror(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        var fetched: u8 = self.memory.read8(address);
+
+        const old_carry_flag = self.getFlag(StatusFlag.C);
+
+        self.setFlag(StatusFlag.C, (fetched & 0x01) == 1);
+        fetched >>= 1;
+        fetched |= ((old_carry_flag & 1) << 7);
+
+        self.updateZeroAndNegativeFlag(fetched);
+
+        if (mode == AddressingMode.Accumulator) {
+            self.register_a = fetched;
+        } else {
+            self.memory.write8(address, fetched);
+        }
+    }
 
     fn _rti(self: *CPU) void {}
 
