@@ -123,7 +123,7 @@ pub const CPU = struct {
                 const ptr: u16 = self.memory.read16(self.program_counter);
                 self.program_counter += 2;
 
-                // emulating hardware bug, if low byte is 0xFF, usually we read hight byte of
+                // Emulating hardware bug: if low byte is 0xFF, usually we read hight byte of
                 // actual address from another page, but this chip wraps address back to the
                 // same page TODO: test this please
                 if (ptr & 0x00FF == 0x00FF) {
@@ -509,9 +509,7 @@ pub const CPU = struct {
 
     fn _and(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value: u8 = self.memory.read8(address);
-
-        self.register_a = self.register_a & value;
+        self.register_a = self.register_a & self.memory.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_a);
     }
@@ -659,11 +657,10 @@ pub const CPU = struct {
 
     fn _dec(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var value = self.memory.read8(address);
+        const fetched = self.memory.read8(address) -% 1;
 
-        value -%= 1;
-        self.memory.write8(address, value);
-        self.updateZeroAndNegativeFlag(value);
+        self.memory.write8(address, fetched);
+        self.updateZeroAndNegativeFlag(fetched);
     }
 
     fn _dex(self: *CPU) void {
@@ -678,19 +675,17 @@ pub const CPU = struct {
 
     fn _eor(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value = self.memory.read8(address);
+        self.register_a ^= self.memory.read8(address);
 
-        self.register_a ^= value;
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
     fn _inc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var value = self.memory.read8(address);
+        const fetched = self.memory.read8(address) +% 1;
 
-        value +%= 1;
-        self.memory.write8(address, value);
-        self.updateZeroAndNegativeFlag(value);
+        self.memory.write8(address, fetched);
+        self.updateZeroAndNegativeFlag(fetched);
     }
 
     fn _inx(self: *CPU) void {
@@ -756,9 +751,8 @@ pub const CPU = struct {
 
     fn _ora(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const value = self.memory.read8(address);
+        self.register_a |= self.memory.read8(address);
 
-        self.register_a |= value;
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
