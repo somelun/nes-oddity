@@ -1,6 +1,11 @@
 const std = @import("std");
 const CPU = @import("cpu.zig").CPU;
 
+const c = @cImport({
+    @cInclude("SDL2/SDL.h");
+});
+
+// TODO:  move to other place later
 const program_code = [_]u8{
     0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9, 0x02, 0x85,
     0x02, 0xa9, 0x04, 0x85, 0x03, 0xa9, 0x11, 0x85, 0x10, 0xa9, 0x10, 0x85, 0x12, 0xa9, 0x0f, 0x85,
@@ -25,8 +30,53 @@ const program_code = [_]u8{
 };
 
 pub fn main() anyerror!void {
-    std.log.info("All your codebase are belong to us.", .{});
+    if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
+        c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    }
+    defer c.SDL_Quit();
+
+    const window = c.SDL_CreateWindow("nes oddity", c.SDL_WINDOWPOS_UNDEFINED, c.SDL_WINDOWPOS_UNDEFINED, 320, 320, c.SDL_WINDOW_OPENGL) orelse {
+        c.SDL_Log("Unable to create window: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyWindow(window);
+
+    const renderer = c.SDL_CreateRenderer(window, -1, 0) orelse {
+        c.SDL_Log("Unable to create renderer: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyRenderer(renderer);
+
+    if (c.SDL_RenderSetLogicalSize(renderer, 32, 32) != 0) {
+        std.debug.warn("Unable to set logical renderer size: {s}", .{c.SDL_GetError()});
+    }
+
+    const zig_texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_BGR888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
+        std.debug.warn("Cannot create texture: {s}", .{c.SDL_GetError()});
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyTexture(zig_texture);
 
     var cpu = CPU.init();
     cpu.loadAndRun(&program_code);
+
+    var quit = false;
+    while (!quit) {
+        var event: c.SDL_Event = undefined;
+        while (c.SDL_PollEvent(&event) != 0) {
+            switch (event.@"type") {
+                c.SDL_QUIT => {
+                    quit = true;
+                },
+                else => {},
+            }
+        }
+
+        _ = c.SDL_RenderClear(renderer);
+        _ = c.SDL_RenderCopy(renderer, zig_texture, null, null);
+        c.SDL_RenderPresent(renderer);
+
+        c.SDL_Delay(17);
+    }
 }

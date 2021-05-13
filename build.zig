@@ -14,6 +14,8 @@ pub fn build(b: *Builder) void {
     const exe = b.addExecutable("nes-oddity", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("c");
     exe.install();
 
     const run_cmd = exe.run();
