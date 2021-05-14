@@ -29,6 +29,13 @@ const program_code = [_]u8{
     0xea, 0xca, 0xd0, 0xfb, 0x60,
 };
 
+// pub fn handleUserInput() void {
+//     var event: c.SDL_Event;
+//     while (c.SDL_PollEvent(&event)) {
+//         //
+//     }
+// }
+
 pub fn main() anyerror!void {
     if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
@@ -66,6 +73,15 @@ pub fn main() anyerror!void {
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.@"type") {
+                c.SDL_KEYDOWN => {
+                    std.debug.print("event button: {any}\n", .{event.button.button});
+                    //     if (event.button.button == c.SDL_BUTTON_W) {
+                    //         std.debug.print("W\n", .{});
+                    //     } else if (event.button.button == c.SDL_BUTTON_S) {
+                    //         std.debug.print("S\n", .{});
+                    //     }
+                },
+                c.SDL_KEYUP => {},
                 c.SDL_QUIT => {
                     quit = true;
                 },
