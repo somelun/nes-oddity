@@ -68,28 +68,31 @@ pub fn main() anyerror!void {
     defer c.SDL_DestroyTexture(zig_texture);
 
     var cpu = CPU.init();
-    cpu.loadAndRun(&program_code);
+    cpu.load(&program_code);
+    cpu.reset();
+    //cpu.loadAndRun(&program_code);
 
     var quit = false;
     while (!quit) {
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.@"type") {
-                c.SDL_KEYDOWN => {
-                    if (event.key.keysym.sym == c.SDLK_w) {
+                c.SDL_KEYUP, c.SDL_KEYDOWN => {
+                    const down = event.type == c.SDL_KEYDOWN;
+
+                    if (event.key.keysym.sym == c.SDLK_w and down) {
                         std.debug.print("W\n", .{});
                     }
-                    if (event.key.keysym.sym == c.SDLK_s) {
+                    if (event.key.keysym.sym == c.SDLK_s and down) {
                         std.debug.print("S\n", .{});
                     }
-                    if (event.key.keysym.sym == c.SDLK_a) {
+                    if (event.key.keysym.sym == c.SDLK_a and down) {
                         std.debug.print("A\n", .{});
                     }
-                    if (event.key.keysym.sym == c.SDLK_d) {
+                    if (event.key.keysym.sym == c.SDLK_d and down) {
                         std.debug.print("D\n", .{});
                     }
                 },
-                c.SDL_KEYUP => {},
                 c.SDL_QUIT => {
                     quit = true;
                 },
