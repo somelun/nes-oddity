@@ -29,6 +29,8 @@ const program_code = [_]u8{
     0xea, 0xca, 0xd0, 0xfb, 0x60,
 };
 
+var keyboard: u8;
+
 // pub fn handleUserInput() void {
 //     var event: c.SDL_Event;
 //     while (c.SDL_PollEvent(&event)) {
@@ -74,12 +76,18 @@ pub fn main() anyerror!void {
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.@"type") {
                 c.SDL_KEYDOWN => {
-                    std.debug.print("event button: {any}\n", .{event.button.button});
-                    //     if (event.button.button == c.SDL_BUTTON_W) {
-                    //         std.debug.print("W\n", .{});
-                    //     } else if (event.button.button == c.SDL_BUTTON_S) {
-                    //         std.debug.print("S\n", .{});
-                    //     }
+                    if (event.key.keysym.sym == c.SDLK_w) {
+                        std.debug.print("W\n", .{});
+                    }
+                    if (event.key.keysym.sym == c.SDLK_s) {
+                        std.debug.print("S\n", .{});
+                    }
+                    if (event.key.keysym.sym == c.SDLK_a) {
+                        std.debug.print("A\n", .{});
+                    }
+                    if (event.key.keysym.sym == c.SDLK_d) {
+                        std.debug.print("D\n", .{});
+                    }
                 },
                 c.SDL_KEYUP => {},
                 c.SDL_QUIT => {
