@@ -5,6 +5,14 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
+const time = @cImport({
+    @cInclude("time.h");
+});
+
+const cstd = @cImport({
+    @cInclude("stdlib.h");
+});
+
 // TODO:  move to other place later
 const program_code = [_]u8{
     0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9, 0x02, 0x85,
@@ -29,16 +37,73 @@ const program_code = [_]u8{
     0xea, 0xca, 0xd0, 0xfb, 0x60,
 };
 
-var keyboard: u8;
+const Color = struct {
+    r: u8, g: u8, b: u8 = 0
+};
 
-// pub fn handleUserInput() void {
-//     var event: c.SDL_Event;
-//     while (c.SDL_PollEvent(&event)) {
-//         //
-//     }
-// }
+fn convertByteToColor(byte: u8) Color {
+    switch (byte) {
+        0 => {
+            // black
+            return Color{ .r = 0, .g = 0, .b = 0 };
+        },
+        1 => {
+            // white
+            return Color{ .r = 255, .g = 255, .b = 255 };
+        },
+        2, 9 => {
+            // grey
+            return Color{ .r = 128, .g = 128, .b = 128 };
+        },
+        3, 10 => {
+            // red
+            return Color{ .r = 255, .g = 0, .b = 0 };
+        },
+        4, 11 => {
+            // green
+            return Color{ .r = 0, .g = 255, .b = 0 };
+        },
+        5, 12 => {
+            // blue
+            return Color{ .r = 0, .g = 255, .b = 255 };
+        },
+        6, 13 => {
+            // magenta
+            return Color{ .r = 255, .g = 0, .b = 255 };
+        },
+        7, 14 => {
+            // yellow
+            return Color{ .r = 255, .g = 255, .b = 0 };
+        },
+        else => {
+            // cyan
+            return Color{ .r = 0, .g = 255, .b = 255 };
+        },
+    }
+}
+
+fn readScreenState(cpu: *CPU, buffer: []const u8) bool {
+    //     var index: u8 = 0;
+    var update_required: bool = true;
+    //     // reading color values from memory
+    //     var i: u16 = 0x0200;
+    //     while (i <= 0x6000) : (i += 1) {
+    //         const value = cpu.memory.read8(i);
+    //         // const color: Color = convertByteToColor(value);
+    //         //
+    //         // buffer[index] = color.r;
+    //         // buffer[index + 1] = color.g;
+    //         // buffer[index + 2] = color.b;
+    //
+    //         index += 3;
+    //     }
+    //
+    return update_required;
+}
 
 pub fn main() anyerror!void {
+    cstd.srand(@intCast(u32, time.time(0)));
+
     if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
@@ -61,16 +126,18 @@ pub fn main() anyerror!void {
         std.debug.warn("Unable to set logical renderer size: {s}", .{c.SDL_GetError()});
     }
 
-    const zig_texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_BGR888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
+    const texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_RGB888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
         std.debug.warn("Cannot create texture: {s}", .{c.SDL_GetError()});
         return error.SDLInitializationFailed;
     };
-    defer c.SDL_DestroyTexture(zig_texture);
+    defer c.SDL_DestroyTexture(texture);
 
     var cpu = CPU.init();
     cpu.load(&program_code);
     cpu.reset();
     //cpu.loadAndRun(&program_code);
+
+    var buffer: [32 * 3 * 32]u8 = undefined;
 
     var quit = false;
     while (!quit) {
@@ -81,16 +148,16 @@ pub fn main() anyerror!void {
                     const down = event.type == c.SDL_KEYDOWN;
 
                     if (event.key.keysym.sym == c.SDLK_w and down) {
-                        std.debug.print("W\n", .{});
+                        cpu.memory.write8(0xFF, 0x77);
                     }
                     if (event.key.keysym.sym == c.SDLK_s and down) {
-                        std.debug.print("S\n", .{});
+                        cpu.memory.write8(0xFF, 0x73);
                     }
                     if (event.key.keysym.sym == c.SDLK_a and down) {
-                        std.debug.print("A\n", .{});
+                        cpu.memory.write8(0xFF, 0x61);
                     }
                     if (event.key.keysym.sym == c.SDLK_d and down) {
-                        std.debug.print("D\n", .{});
+                        cpu.memory.write8(0xFF, 0x64);
                     }
                 },
                 c.SDL_QUIT => {
@@ -100,8 +167,33 @@ pub fn main() anyerror!void {
             }
         }
 
+        // input requires random number at 0xFE
+        cpu.memory.write8(0xFE, @intCast(u8, @rem(cstd.rand(), 16) + 1));
+
+        cpu.cycle();
+
+        var index: u16 = 0;
+        var update_required: bool = true;
+
+        const flag: bool = readScreenState(&cpu, &buffer);
+
+        // reading color values from memory
+        var i: u16 = 0x0200;
+        while (i < 0x0600) : (i += 1) {
+            const value = cpu.memory.read8(i);
+            const color: Color = convertByteToColor(value);
+
+            buffer[index] = color.r;
+            buffer[index + 1] = color.g;
+            buffer[index + 2] = color.b;
+
+            index += 3;
+        }
+
+        const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32 * 3));
+
         _ = c.SDL_RenderClear(renderer);
-        _ = c.SDL_RenderCopy(renderer, zig_texture, null, null);
+        _ = c.SDL_RenderCopy(renderer, texture, null, null);
         c.SDL_RenderPresent(renderer);
 
         c.SDL_Delay(17);

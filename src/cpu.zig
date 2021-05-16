@@ -67,7 +67,7 @@ pub const CPU = struct {
 
             const opcode: ?Opcode = self.opcodes.get(value);
             if (opcode == null) {
-                continue;
+                return;
             }
 
             const addressing_mode: AddressingMode = opcode.?.addressing_mode;
