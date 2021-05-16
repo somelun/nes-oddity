@@ -82,23 +82,17 @@ fn convertByteToColor(byte: u8) Color {
     }
 }
 
-fn readScreenState(cpu: *CPU, buffer: []const u8) bool {
-    //     var index: u8 = 0;
-    var update_required: bool = true;
-    //     // reading color values from memory
-    //     var i: u16 = 0x0200;
-    //     while (i <= 0x6000) : (i += 1) {
-    //         const value = cpu.memory.read8(i);
-    //         // const color: Color = convertByteToColor(value);
-    //         //
-    //         // buffer[index] = color.r;
-    //         // buffer[index + 1] = color.g;
-    //         // buffer[index + 2] = color.b;
-    //
-    //         index += 3;
-    //     }
-    //
-    return update_required;
+fn readScreenState(cpu: *CPU, buffer: []u24) void {
+    var index: u16 = 0;
+    // reading color values from memory
+    var i: u16 = 0x0200;
+    while (i < 0x0600) : (i += 1) {
+        const value = cpu.memory.read8(i);
+        var color: Color = convertByteToColor(value);
+
+        buffer[index] = (@as(u24, color.r) << 16) + (@as(u24, color.g) << 8) + @as(u24, color.b);
+        index += 1;
+    }
 }
 
 pub fn main() anyerror!void {
@@ -122,10 +116,6 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyRenderer(renderer);
 
-    if (c.SDL_RenderSetLogicalSize(renderer, 32, 32) != 0) {
-        std.debug.warn("Unable to set logical renderer size: {s}", .{c.SDL_GetError()});
-    }
-
     const texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_RGB888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
         std.debug.warn("Cannot create texture: {s}", .{c.SDL_GetError()});
         return error.SDLInitializationFailed;
@@ -135,9 +125,8 @@ pub fn main() anyerror!void {
     var cpu = CPU.init();
     cpu.load(&program_code);
     cpu.reset();
-    //cpu.loadAndRun(&program_code);
 
-    var buffer: [32 * 3 * 32]u8 = undefined;
+    var buffer: [32 * 32]u24 = undefined;
 
     var quit = false;
     while (!quit) {
@@ -166,31 +155,14 @@ pub fn main() anyerror!void {
                 else => {},
             }
         }
-
         // input requires random number at 0xFE
         cpu.memory.write8(0xFE, @intCast(u8, @rem(cstd.rand(), 16) + 1));
 
         cpu.cycle();
 
-        var index: u16 = 0;
-        var update_required: bool = true;
+        readScreenState(&cpu, &buffer);
 
-        const flag: bool = readScreenState(&cpu, &buffer);
-
-        // reading color values from memory
-        var i: u16 = 0x0200;
-        while (i < 0x0600) : (i += 1) {
-            const value = cpu.memory.read8(i);
-            const color: Color = convertByteToColor(value);
-
-            buffer[index] = color.r;
-            buffer[index + 1] = color.g;
-            buffer[index + 2] = color.b;
-
-            index += 3;
-        }
-
-        const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32 * 3));
+        const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
 
         _ = c.SDL_RenderClear(renderer);
         _ = c.SDL_RenderCopy(renderer, texture, null, null);
