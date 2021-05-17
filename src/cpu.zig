@@ -57,11 +57,12 @@ pub const CPU = struct {
         self.memory.loadProgram(program_code);
 
         // program counter stored in memory at 0xFFFC
-        self.memory.write16(program_counter_address, 0x8000);
+        self.memory.write16(program_counter_address, 0x0600);
     }
 
     pub fn cycle(self: *CPU) void {
         if (self.program_counter < 0xFFFC) { //TODO: remove magic number
+            std.debug.print("BEGIN PC: {}\n", .{self.program_counter});
             const value: u8 = self.memory.read8(self.program_counter);
             self.program_counter += 1;
 
@@ -72,7 +73,10 @@ pub const CPU = struct {
 
             const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
+            std.debug.print("Before value: {}, mode: {}, PC: {}, status: {b}\n", .{ value, addressing_mode, self.program_counter, self.status });
             self.handleOpcode(value, addressing_mode);
+
+            // std.debug.print("opode: {X}, pc: {X}, mode: {}\n", .{ value, self.program_counter, addressing_mode });
         }
     }
 
@@ -191,6 +195,7 @@ pub const CPU = struct {
 
     // TODO: return bool
     fn handleOpcode(self: *CPU, value: u8, addressing_mode: AddressingMode) void {
+        // std.debug.print("handle opcode\n", .{});
         switch (value) {
             // ADC: Add Memory to Accumulator with Carry
             0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {
@@ -569,8 +574,11 @@ pub const CPU = struct {
     }
 
     fn _beq(self: *CPU, mode: AddressingMode) void {
+        std.debug.print("BEQ status {b}\n", .{self.status});
+        self.program_counter += 1;
         if (self.getFlag(StatusFlag.Z) == 1) {
             self.program_counter = self.getOperandAddress(mode);
+            std.debug.print("BEQ: PC = {}\n", .{self.program_counter});
         }
     }
 
@@ -711,10 +719,13 @@ pub const CPU = struct {
     fn _jsr(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
 
+        // std.debug.print("_jsr: PC = {}\n", .{self.program_counter});
         const lo: u8 = @intCast(u8, (self.program_counter >> 8) & 0xFF);
         const hi: u8 = @intCast(u8, self.program_counter & 0xFF);
         self.memory.pushToStack(lo);
         self.memory.pushToStack(hi);
+
+        // std.debug.print("_jsr: address = {}\n", .{address});
 
         self.program_counter = address;
     }
@@ -907,6 +918,11 @@ pub const CPU = struct {
 
 ///////////////////////////////////////////////////////////
 // Tests
+
+test "addressing_mode_impied" {
+    var cpu = CPU.init();
+    cpu.load(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
+}
 
 test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();

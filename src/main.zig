@@ -122,15 +122,19 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
+    // CPU
     var cpu = CPU.init();
     cpu.load(&program_code);
     cpu.reset();
 
     var buffer: [32 * 32]u24 = undefined;
 
+    // sdl loop
     var quit = false;
     while (!quit) {
         var event: c.SDL_Event = undefined;
+
+        // TODO: someday switch to https://stackoverflow.com/questions/11699183/what-is-the-best-way-to-read-input-from-keyboard-using-sdl
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.@"type") {
                 c.SDL_KEYUP, c.SDL_KEYDOWN => {
@@ -161,7 +165,6 @@ pub fn main() anyerror!void {
         cpu.cycle();
 
         readScreenState(&cpu, &buffer);
-
         const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
 
         _ = c.SDL_RenderClear(renderer);

@@ -51,6 +51,6 @@ pub const RAM = struct {
 
     pub fn loadProgram(self: *RAM, program_code: []const u8) void {
         const program_len = program_code.len;
-        mem.copy(u8, self.memory[0x8000 .. 0x8000 + program_len], program_code[0..program_len]);
+        mem.copy(u8, self.memory[0x0600 .. 0x0600 + program_len], program_code[0..program_len]);
     }
 };
