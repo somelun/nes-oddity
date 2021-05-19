@@ -130,9 +130,11 @@ pub const CPU = struct {
 
             AddressingMode.Relative => {
                 const offset: u8 = self.memory.read8(self.program_counter);
-                self.program_counter += 1;
+                std.debug.print("offset: {}, address: {}\n", .{ offset, self.program_counter });
 
-                address = self.program_counter + offset;
+                self.program_counter +%= 1;
+
+                address = self.program_counter +% offset;
 
                 // if the offset is negative
                 if (offset > 0x7F) {
@@ -574,8 +576,6 @@ pub const CPU = struct {
     }
 
     fn _beq(self: *CPU, mode: AddressingMode) void {
-        std.debug.print("BEQ status {b}\n", .{self.status});
-        self.program_counter += 1;
         if (self.getFlag(StatusFlag.Z) == 1) {
             self.program_counter = self.getOperandAddress(mode);
             std.debug.print("BEQ: PC = {}\n", .{self.program_counter});
@@ -653,6 +653,8 @@ pub const CPU = struct {
         const fetched = self.memory.read8(address);
 
         const diff = self.register_x -% fetched;
+
+        std.debug.print("cpx x = {}, f = {}, diff = {}\n", .{ self.register_x, fetched, diff });
 
         self.setFlag(StatusFlag.C, self.register_x >= fetched);
         self.updateZeroAndNegativeFlag(diff);
@@ -969,13 +971,13 @@ test "adc_different" {
     std.testing.expect(cpu.register_a == 0x24);
 }
 
-test "multiplication" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{
-        0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E,
-        0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18,
-        0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02,
-        0x00, 0xEA, 0xEA, 0xEA,
-    });
-    // std.testing.expect(cpu.register_a == 0x1E);
-}
+// test "multiplication" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{
+//         0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E,
+//         0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18,
+//         0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02,
+//         0x00, 0xEA, 0xEA, 0xEA,
+//     });
+//     // std.testing.expect(cpu.register_a == 0)
+// }
