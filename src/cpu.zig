@@ -62,7 +62,7 @@ pub const CPU = struct {
 
     pub fn cycle(self: *CPU) void {
         if (self.program_counter < 0xFFFC) { //TODO: remove magic number
-            std.debug.print("BEGIN PC: {}\n", .{self.program_counter});
+            std.debug.print("initial pc: {}\n", .{self.program_counter});
             const value: u8 = self.memory.read8(self.program_counter);
             self.program_counter += 1;
 
@@ -73,10 +73,8 @@ pub const CPU = struct {
 
             const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
-            std.debug.print("Before value: {}, mode: {}, PC: {}, status: {b}\n", .{ value, addressing_mode, self.program_counter, self.status });
+            std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
             self.handleOpcode(value, addressing_mode);
-
-            // std.debug.print("opode: {X}, pc: {X}, mode: {}\n", .{ value, self.program_counter, addressing_mode });
         }
     }
 
@@ -129,16 +127,14 @@ pub const CPU = struct {
             },
 
             AddressingMode.Relative => {
-                const offset: u8 = self.memory.read8(self.program_counter);
-                std.debug.print("offset: {}, address: {}\n", .{ offset, self.program_counter });
-
-                self.program_counter +%= 1;
+                var offset: u8 = self.memory.read8(self.program_counter);
+                self.program_counter += 1;
 
                 address = self.program_counter +% offset;
 
                 // if the offset is negative
                 if (offset > 0x7F) {
-                    address |= 0xFF00;
+                    address -= 0x0100;
                 }
             },
 
@@ -197,7 +193,6 @@ pub const CPU = struct {
 
     // TODO: return bool
     fn handleOpcode(self: *CPU, value: u8, addressing_mode: AddressingMode) void {
-        // std.debug.print("handle opcode\n", .{});
         switch (value) {
             // ADC: Add Memory to Accumulator with Carry
             0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71 => {
@@ -564,21 +559,23 @@ pub const CPU = struct {
     }
 
     fn _bcc(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.C) == 0) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
     fn _bcs(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.C) == 1) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
     fn _beq(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.Z) == 1) {
-            self.program_counter = self.getOperandAddress(mode);
-            std.debug.print("BEQ: PC = {}\n", .{self.program_counter});
+            self.program_counter = address;
         }
     }
 
@@ -593,32 +590,37 @@ pub const CPU = struct {
     }
 
     fn _bmi(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.N) == 1) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
     fn _bne(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.Z) == 0) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
     fn _bpl(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.N) == 0) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
     fn _bvc(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.V) == 0) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
     fn _bvs(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
         if (self.getFlag(StatusFlag.V) == 1) {
-            self.program_counter = self.getOperandAddress(mode);
+            self.program_counter = address;
         }
     }
 
@@ -653,8 +655,6 @@ pub const CPU = struct {
         const fetched = self.memory.read8(address);
 
         const diff = self.register_x -% fetched;
-
-        std.debug.print("cpx x = {}, f = {}, diff = {}\n", .{ self.register_x, fetched, diff });
 
         self.setFlag(StatusFlag.C, self.register_x >= fetched);
         self.updateZeroAndNegativeFlag(diff);
@@ -721,13 +721,10 @@ pub const CPU = struct {
     fn _jsr(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
 
-        // std.debug.print("_jsr: PC = {}\n", .{self.program_counter});
         const lo: u8 = @intCast(u8, (self.program_counter >> 8) & 0xFF);
         const hi: u8 = @intCast(u8, self.program_counter & 0xFF);
         self.memory.pushToStack(lo);
         self.memory.pushToStack(hi);
-
-        // std.debug.print("_jsr: address = {}\n", .{address});
 
         self.program_counter = address;
     }
@@ -930,8 +927,6 @@ test "0xA9_LDA_immidiate_load_data" {
     var cpu = CPU.init();
     cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
     std.testing.expect(cpu.register_a == 0x05);
-    std.debug.assert(cpu.status & 0b0000_0010 == 0b00);
-    std.debug.assert(cpu.status & 0b1000_0000 == 0);
 }
 
 test "0xA9_LDA_zero_flag" {
