@@ -62,7 +62,7 @@ pub const CPU = struct {
 
     pub fn cycle(self: *CPU) void {
         if (self.program_counter < 0xFFFC) { //TODO: remove magic number
-            std.debug.print("initial pc: {}\n", .{self.program_counter});
+            // std.debug.print("initial pc: {}\n", .{self.program_counter});
             const value: u8 = self.memory.read8(self.program_counter);
             self.program_counter += 1;
 
@@ -73,7 +73,7 @@ pub const CPU = struct {
 
             const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
-            std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
+            // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
             self.handleOpcode(value, addressing_mode);
         }
     }

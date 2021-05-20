@@ -5,10 +5,6 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
-const time = @cImport({
-    @cInclude("time.h");
-});
-
 const cstd = @cImport({
     @cInclude("stdlib.h");
 });
@@ -96,7 +92,7 @@ fn readScreenState(cpu: *CPU, buffer: []u24) void {
 }
 
 pub fn main() anyerror!void {
-    cstd.srand(@intCast(u32, time.time(0)));
+    cstd.srand(@intCast(u32, c.time(0)));
 
     if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
@@ -128,6 +124,8 @@ pub fn main() anyerror!void {
     cpu.reset();
 
     var buffer: [32 * 32]u24 = undefined;
+
+    var count: u8 = 30;
 
     // sdl loop
     var quit = false;
@@ -162,15 +160,19 @@ pub fn main() anyerror!void {
         // input requires random number at 0xFE
         cpu.memory.write8(0xFE, @intCast(u8, @rem(cstd.rand(), 16) + 1));
 
+        // TODO: count cycles and remove hardcoded count
         cpu.cycle();
 
         readScreenState(&cpu, &buffer);
         const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
 
-        _ = c.SDL_RenderClear(renderer);
-        _ = c.SDL_RenderCopy(renderer, texture, null, null);
-        c.SDL_RenderPresent(renderer);
+        count -= 1;
+        if (count == 0) {
+            count = 30;
 
-        c.SDL_Delay(17);
+            _ = c.SDL_RenderClear(renderer);
+            _ = c.SDL_RenderCopy(renderer, texture, null, null);
+            c.SDL_RenderPresent(renderer);
+        }
     }
 }
