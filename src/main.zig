@@ -161,7 +161,7 @@ pub fn main() anyerror!void {
         cpu.memory.write8(0xFE, @intCast(u8, @rem(cstd.rand(), 16) + 1));
 
         // TODO: count cycles and remove hardcoded count
-        cpu.cycle();
+        var cycles: u8 = cpu.cycle();
 
         readScreenState(&cpu, &buffer);
         const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
@@ -174,5 +174,9 @@ pub fn main() anyerror!void {
             _ = c.SDL_RenderCopy(renderer, texture, null, null);
             c.SDL_RenderPresent(renderer);
         }
+
+        // TODO: NES cpu works with 1.7 MHz, every game runs at 60 fps
+        // thats what required to imlement, I'll do this after implementing Bus
+        // and starting to do PPU
     }
 }

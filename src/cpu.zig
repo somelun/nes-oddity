@@ -60,24 +60,31 @@ pub const CPU = struct {
         self.memory.write16(program_counter_address, 0x0600);
     }
 
-    pub fn cycle(self: *CPU) void {
-        if (self.program_counter < 0xFFFC) { //TODO: remove magic number
-            // std.debug.print("initial pc: {}\n", .{self.program_counter});
-            const value: u8 = self.memory.read8(self.program_counter);
-            self.program_counter += 1;
+    pub fn cycle(self: *CPU) u8 {
+        // if (self.program_counter < 0xFFFC) { //TODO: remove magic number
+        // std.debug.print("initial pc: {}\n", .{self.program_counter});
+        const value: u8 = self.memory.read8(self.program_counter);
+        self.program_counter += 1;
 
-            const opcode: ?Opcode = self.opcodes.get(value);
-            if (opcode == null) {
-                return;
-            }
+        // these flags are unused in this emulation
+        self.setFlag(StatusFlag.U, true);
+        self.setFlag(StatusFlag.I, true);
 
-            const addressing_mode: AddressingMode = opcode.?.addressing_mode;
-
-            // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
-            self.handleOpcode(value, addressing_mode);
+        const opcode: ?Opcode = self.opcodes.get(value);
+        if (opcode == null) {
+            return 0;
         }
+
+        const addressing_mode: AddressingMode = opcode.?.addressing_mode;
+
+        // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
+        self.handleOpcode(value, addressing_mode);
+        // }
+
+        return 0;
     }
 
+    // used to tests
     fn loop(self: *CPU) void {
         while (self.program_counter < 0xFFFC) { //TODO: remove magic number
             const value: u8 = self.memory.read8(self.program_counter);
