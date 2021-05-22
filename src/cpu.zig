@@ -1,7 +1,7 @@
 const std = @import("std");
 const AutoHashMap = std.AutoHashMap;
 
-const RAM = @import("ram.zig").RAM;
+const Bus = @import("bus.zig").Bus;
 
 const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
@@ -28,13 +28,14 @@ pub const CPU = struct {
     status: u8 = 0x00,
     // stack_pointer: u8 = 0xFF,
     program_counter: u16 = 0x0000,
+    stack_pointer: u8 = 0xFD,
 
-    memory: RAM,
+    memory: Bus,
     opcodes: AutoHashMap(u8, Opcode),
 
     pub fn init() CPU {
         return CPU{
-            .memory = RAM.init(),
+            .memory = Bus.init(),
             .opcodes = OpcodesAPI.generateOpcodes(),
         };
     }
@@ -487,6 +488,29 @@ pub const CPU = struct {
     }
 
     ///////////////////////////////////////////////////////
+    // Stack Flags operations
+
+    fn pushToStack(self: *CPU, value: u8) void {
+        self.memory.write8(0x0100 + @intCast(u16, self.stack_pointer), value);
+        self.decrementStackPointer();
+    }
+
+    fn popFromStack(self: *CPU) u8 {
+        self.incrementStackPointer();
+        return self.memory.read8(0x0100 + @intCast(u16, self.stack_pointer));
+    }
+
+    fn incrementStackPointer(self: *CPU) void {
+        self.stack_pointer += 1;
+        self.stack_pointer &= 0xFF;
+    }
+
+    fn decrementStackPointer(self: *CPU) void {
+        self.stack_pointer -= 1;
+        self.stack_pointer &= 0xFF;
+    }
+
+    ///////////////////////////////////////////////////////
     // Status Flags operations
 
     fn updateZeroAndNegativeFlag(self: *CPU, value: u8) void {
@@ -730,8 +754,8 @@ pub const CPU = struct {
 
         const lo: u8 = @intCast(u8, (self.program_counter >> 8) & 0xFF);
         const hi: u8 = @intCast(u8, self.program_counter & 0xFF);
-        self.memory.pushToStack(lo);
-        self.memory.pushToStack(hi);
+        self.pushToStack(lo);
+        self.pushToStack(hi);
 
         self.program_counter = address;
     }
@@ -781,19 +805,19 @@ pub const CPU = struct {
     }
 
     fn _pha(self: *CPU) void {
-        self.memory.pushToStack(self.register_a);
+        self.pushToStack(self.register_a);
     }
 
     fn _php(self: *CPU) void {
-        self.memory.pushToStack(self.status);
+        self.pushToStack(self.status);
     }
 
     fn _pla(self: *CPU) void {
-        self.register_a = self.memory.popFromStack();
+        self.register_a = self.popFromStack();
     }
 
     fn _plp(self: *CPU) void {
-        self.status = self.memory.popFromStack();
+        self.status = self.popFromStack();
     }
 
     fn _rol(self: *CPU, mode: AddressingMode) void {
@@ -835,19 +859,19 @@ pub const CPU = struct {
     }
 
     fn _rti(self: *CPU) void {
-        self.status = self.memory.popFromStack();
+        self.status = self.popFromStack();
 
         // TODO: this is just a copy-paste from the internet,
         // tests required
-        const hi: u8 = self.memory.popFromStack();
-        const lo: u8 = self.memory.popFromStack();
+        const hi: u8 = self.popFromStack();
+        const lo: u8 = self.popFromStack();
 
         self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
     }
 
     fn _rts(self: *CPU) void {
-        const hi: u8 = self.memory.popFromStack();
-        const lo: u8 = self.memory.popFromStack();
+        const hi: u8 = self.popFromStack();
+        const lo: u8 = self.popFromStack();
 
         self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
     }
@@ -903,7 +927,7 @@ pub const CPU = struct {
     }
 
     fn _tsx(self: *CPU) void {
-        self.register_x = self.memory.popFromStack();
+        self.register_x = self.popFromStack();
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
@@ -913,7 +937,7 @@ pub const CPU = struct {
     }
 
     fn _txs(self: *CPU) void {
-        self.memory.pushToStack(self.register_x);
+        self.pushToStack(self.register_x);
     }
 
     fn _tya(self: *CPU) void {
