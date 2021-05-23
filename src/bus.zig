@@ -14,7 +14,7 @@ pub const Bus = struct {
     }
 
     pub fn read8(self: *Bus, address: u16) u8 {
-        var data: u8 = 0x00;
+        var data: u8 = undefined;
 
         switch (address) {
             RAM_BEGIN...RAM_MIRROR_END => {

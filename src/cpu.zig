@@ -26,7 +26,6 @@ pub const CPU = struct {
     register_x: u8 = 0x00,
     register_y: u8 = 0x00,
     status: u8 = 0x00,
-    // stack_pointer: u8 = 0xFF,
     program_counter: u16 = 0x0000,
     stack_pointer: u8 = 0xFD,
 
