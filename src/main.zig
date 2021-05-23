@@ -39,8 +39,9 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
-    var file = try std.fs.cwd().openFile("path/to/file.txt⁩", .{});
-    defer file.close();
+    // var file = try std.fs.cwd().openFile("", .{});
+    // defer file.close();
+
     // Rom
     var rom = Rom.init();
 
