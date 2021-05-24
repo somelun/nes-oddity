@@ -39,11 +39,12 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
-    // var file = try std.fs.cwd().openFile("", .{});
-    // defer file.close();
+    // var buf: [std.mem.page_size]u8 = undefined;
+    //
+    // var bytes_read = try file.read(buf[0..]);
 
     // Rom
-    var rom = Rom.init();
+    var rom = try Rom.init("roms/snake.nes");
 
     // Bus
     var bus = Bus.init();
