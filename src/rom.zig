@@ -1,39 +1,140 @@
+// NES file header
+//
+//
+//
+//  | String NES^Z
+//  |
+//  |           | Number of 16kB PRG ROM banks
+//  |           |
+//  |           |  | Number of 8kB CHR ROM banks
+//  |           |  |
+//  |           |  |  | Control Byte 1
+//  |           |  |  |
+//  |           |  |  |  | Control Byte 2
+//  |           |  |  |  |
+// 4E 45 53 1A 08 00 21 00 00 00 00 00 00 00 00 00
+//                          |     |
+//                          |     | Reserved, must be zero
+//                          |
+//                          | Size of PRG RAM in 8kB units
+//
+//
+//
+//
+// Control Byte 1:
+// 7 6 5 4 3 2 1 0
+// | | | | | | | |
+// | | | | | | | 0 for horizontal mirroring
+// | | | | | | | 1 for vertical morroring
+// | | | | | | |
+// | | | | | | 1 for battery-backed RAM of 0x6000-0x7FFF
+// | | | | | |
+// | | | | | 1 for a 512-byte trainer at 0x7000-0x71FF
+// | | | | |
+// | | | | 1 for a four-screen VRAM layout
+// | | | |
+// | | | |
+// Four lower bits of ROM mapper type
+//
+//
+//
+// Control Byte 2:
+// 7 6 5 4 3 2 1 0
+// | | | | | | | |
+// | | | | | | | Should be 0 (for iNES 1.0 format)
+// | | | | | | |
+// | | | | | | Should be 0 (for iNES 1.0 format)
+// | | | | | |
+// | | | | if bits (3, 2) == 10, then its iNES 2.0 format
+// | | | | if bits (3, 2) == 0, then its iNES 1.0 format
+// | | | |
+// | | | |
+// Four upper bits of ROM mapper type
+//
+//
+// More information about NES structure can be found here: https://formats.kaitai.io/ines/index.html
+
 const std = @import("std");
 
-const nes_header = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
+const NesHeader = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
 
 const LoadError = error{ UnsupportedMapper, UnsupportedFormat, InvalidFormat };
 
+// more about mirroring here: https://wiki.nesdev.com/w/index.php/Mirroring
 const Mirroring = enum {
-    vertical, horizontal, four_screen
+    Vertical, Horizontal, FourScreen
 };
 
 pub const Rom = struct {
-    // prg_rom: [_]u8,
-    // chr_rom: [_]u8,
-    // mapper: u8,
-    // screen_mirroring: Mirroring,
-    pub fn init(path: []const u8) !Rom {
-        try loadRom(path);
+    prg_rom: []u8 = undefined,
+    chr_rom: []u8 = undefined,
+    mapper: u8 = 0, // TODO: implement mapper
+    screen_mirroring: Mirroring,
 
-        return Rom{};
+    pub fn init(path: []const u8) !Rom {
+        var rom: Rom = undefined;
+
+        try rom.load(path);
+
+        return rom;
+    }
+
+    pub fn deinit() void {
+        prg_rom.deinit();
+        chr_rom.deinit();
+    }
+
+    fn load(self: *Rom, path: []const u8) !void {
+        const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{ .read = true });
+        defer file.close();
+
+        // reading header - first row of bytes
+        var header: [16]u8 = undefined;
+        const read = try file.read(header[0..header.len]);
+        if (read != 16) {
+            return LoadError.InvalidFormat;
+        }
+
+        if (!std.mem.eql(u8, header[0..4], &NesHeader)) {
+            return LoadError.UnsupportedFormat;
+        }
+
+        // reading all from the header
+        const prg_rom_banks_number: u16 = header[4]; // every bank is 16kB
+        const chr_rom_banks_number: u16 = header[5]; // every bank is 8kB
+        const control_byte_1: u8 = header[6];
+        const control_byte_2: u8 = header[7];
+        const prg_ram_size: u8 = header[8]; // in 8kB units
+
+        // parsing control_byte_1
+        const vertical_mirroring: bool = control_byte_1 & 0b1 == 0b1;
+        const battery: bool = control_byte_1 & 0b10 == 0b10;
+        const trainer: bool = control_byte_1 & 0b100 == 0b100;
+        const four_screen: bool = control_byte_1 & 0b1000 == 0b1000;
+
+        const mapper_type: u8 = ((control_byte_2 & 0b11110000) | (control_byte_1 & 0b11110000 >> 4));
+
+        if (four_screen) {
+            self.screen_mirroring = Mirroring.FourScreen;
+        } else {
+            self.screen_mirroring = if (vertical_mirroring) Mirroring.Vertical else Mirroring.Horizontal;
+        }
+
+        const prg_rom_size: u16 = prg_rom_banks_number * 16 * 1024;
+        const chr_rom_size: u16 = chr_rom_banks_number * 8 * 1024;
+
+        const prg_rom_start: u16 = if (trainer) 16 + 512 else 16;
+        const chr_rom_start: u16 = prg_rom_start + prg_rom_start;
+
+        const allocator = std.heap.page_allocator;
+        self.prg_rom = try allocator.alloc(u8, prg_rom_size);
+        self.chr_rom = try allocator.alloc(u8, chr_rom_size);
+
+        try file.seekTo(prg_rom_start);
+        _ = try file.read(self.prg_rom[0..prg_rom_size]);
+        _ = try file.read(self.chr_rom[0..chr_rom_size]);
+
+        std.debug.print("{any},  {any}\n", .{ prg_rom_banks_number, chr_rom_banks_number });
+        // std.debug.print("{any}\n", .{self.chr_rom});
     }
 };
-
-fn loadRom(path: []const u8) !void {
-    const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{ .read = true });
-    defer file.close();
-
-    // reading header - first row of bytes
-    var header: [16]u8 = undefined;
-    const read = try file.read(header[0..header.len]);
-    if (read != 16) {
-        return LoadError.InvalidFormat;
-    }
-
-    // if (!std.mem.eql(u8, header[0..3], &nes_header)) {
-    //     return LoadError.UnsupportedFormat;
-    // }
-
-    std.debug.print("{X}\n", .{header});
-}
