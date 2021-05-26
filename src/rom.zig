@@ -79,9 +79,10 @@ pub const Rom = struct {
         return rom;
     }
 
-    pub fn deinit() void {
-        prg_rom.deinit();
-        chr_rom.deinit();
+    pub fn deinit(self: *Rom) void {
+        const allocator = std.heap.page_allocator;
+        allocator.free(self.prg_rom);
+        allocator.free(self.chr_rom);
     }
 
     fn load(self: *Rom, path: []const u8) !void {

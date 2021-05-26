@@ -45,6 +45,7 @@ pub fn main() anyerror!void {
 
     // Rom
     var rom = try Rom.init("roms/snake.nes");
+    // defer rom.deinit();
 
     // Bus
     var bus = Bus.init();
