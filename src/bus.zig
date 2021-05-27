@@ -1,4 +1,5 @@
 const mem = @import("std").mem;
+const Rom = @import("rom.zig").Rom;
 
 pub const Bus = struct {
     const RAM_BEGIN: u16 = 0x0000;
@@ -9,7 +10,12 @@ pub const Bus = struct {
     // 2KB of Work RAM available for the CPU
     wram: [0x800]u8 = [_]u8{0} ** 0x800,
 
-    pub fn init() Bus {
+    rom: *Rom = undefined,
+
+    pub fn init(rom: *Rom) Bus {
+        var bus: Bus = Bus{};
+        bus.rom = rom;
+
         return Bus{};
     }
 

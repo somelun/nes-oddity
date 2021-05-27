@@ -39,20 +39,12 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
-    // var buf: [std.mem.page_size]u8 = undefined;
-    //
-    // var bytes_read = try file.read(buf[0..]);
-
-    // Rom
     var rom = try Rom.init("roms/snake.nes");
-    // defer rom.deinit();
+    defer rom.deinit();
 
-    // Bus
-    var bus = Bus.init();
+    var bus = Bus.init(&rom);
 
-    // CPU
-    var cpu = CPU.init();
-    // cpu.load(&program_code);
+    var cpu = CPU.init(&bus);
     cpu.reset();
 
     var buffer: [32 * 32]u24 = undefined;
@@ -71,16 +63,16 @@ pub fn main() anyerror!void {
                     const down = event.type == c.SDL_KEYDOWN;
 
                     if (event.key.keysym.sym == c.SDLK_w and down) {
-                        cpu.memory.write8(0xFF, 0x77);
+                        bus.write8(0xFF, 0x77);
                     }
                     if (event.key.keysym.sym == c.SDLK_s and down) {
-                        cpu.memory.write8(0xFF, 0x73);
+                        bus.write8(0xFF, 0x73);
                     }
                     if (event.key.keysym.sym == c.SDLK_a and down) {
-                        cpu.memory.write8(0xFF, 0x61);
+                        bus.write8(0xFF, 0x61);
                     }
                     if (event.key.keysym.sym == c.SDLK_d and down) {
-                        cpu.memory.write8(0xFF, 0x64);
+                        bus.write8(0xFF, 0x64);
                     }
                 },
                 c.SDL_QUIT => {
@@ -90,7 +82,7 @@ pub fn main() anyerror!void {
             }
         }
         // input requires random number at 0xFE
-        cpu.memory.write8(0xFE, @intCast(u8, @rem(c.rand(), 16) + 1));
+        bus.write8(0xFE, @intCast(u8, @rem(c.rand(), 16) + 1));
 
         // TODO: count cycles and remove hardcoded count
         // var cycles: u8 = cpu.cycle();
@@ -159,7 +151,7 @@ fn readScreenState(cpu: *CPU, buffer: []u24) void {
     // reading color values from memory
     var i: u16 = 0x0200;
     while (i < 0x0600) : (i += 1) {
-        const value = cpu.memory.read8(i);
+        const value = cpu.bus.read8(i);
         var color: Color = convertByteToColor(value);
 
         buffer[index] = (@as(u24, color.r) << 16) + (@as(u24, color.g) << 8) + @as(u24, color.b);

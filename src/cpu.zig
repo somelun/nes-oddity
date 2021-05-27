@@ -29,14 +29,17 @@ pub const CPU = struct {
     program_counter: u16 = 0x0000,
     stack_pointer: u8 = 0xFD,
 
-    memory: Bus,
+    bus: *Bus = undefined,
     opcodes: AutoHashMap(u8, Opcode),
 
-    pub fn init() CPU {
-        return CPU{
-            .memory = Bus.init(),
+    pub fn init(bus: *Bus) CPU {
+        var cpu = CPU{
             .opcodes = OpcodesAPI.generateOpcodes(),
         };
+
+        cpu.bus = bus;
+
+        return cpu;
     }
 
     pub fn reset(self: *CPU) void {
@@ -44,7 +47,7 @@ pub const CPU = struct {
         self.register_x = 0;
         self.status = 0;
 
-        self.program_counter = self.memory.read16(program_counter_address);
+        self.program_counter = self.bus.read16(program_counter_address);
     }
 
     pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
@@ -54,16 +57,16 @@ pub const CPU = struct {
     }
 
     pub fn load(self: *CPU, program_code: []const u8) void {
-        self.memory.loadProgram(program_code);
+        self.bus.loadProgram(program_code);
 
         // program counter stored in memory at 0xFFFC
-        self.memory.write16(program_counter_address, 0x0600);
+        self.bus.write16(program_counter_address, 0x0600);
     }
 
     pub fn cycle(self: *CPU) u8 {
         // if (self.program_counter < 0xFFFC) { //TODO: remove magic number
         // std.debug.print("initial pc: {}\n", .{self.program_counter});
-        const value: u8 = self.memory.read8(self.program_counter);
+        const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter += 1;
 
         // these flags are unused in this emulation
@@ -87,7 +90,7 @@ pub const CPU = struct {
     // used to tests
     fn loop(self: *CPU) void {
         while (self.program_counter < 0xFFFC) { //TODO: remove magic number
-            const value: u8 = self.memory.read8(self.program_counter);
+            const value: u8 = self.bus.read8(self.program_counter);
             self.program_counter += 1;
 
             const opcode: ?Opcode = self.opcodes.get(value);
@@ -119,22 +122,22 @@ pub const CPU = struct {
             },
 
             AddressingMode.ZeroPage => {
-                address = self.memory.read8(self.program_counter);
+                address = self.bus.read8(self.program_counter);
                 self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageX => {
-                address = self.memory.read8(self.program_counter) +% self.register_x;
+                address = self.bus.read8(self.program_counter) +% self.register_x;
                 self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageY => {
-                address = self.memory.read8(self.program_counter) +% self.register_y;
+                address = self.bus.read8(self.program_counter) +% self.register_y;
                 self.program_counter += 1;
             },
 
             AddressingMode.Relative => {
-                var offset: u8 = self.memory.read8(self.program_counter);
+                var offset: u8 = self.bus.read8(self.program_counter);
                 self.program_counter += 1;
 
                 address = self.program_counter +% offset;
@@ -146,49 +149,49 @@ pub const CPU = struct {
             },
 
             AddressingMode.Absolute => {
-                address = self.memory.read16(self.program_counter);
+                address = self.bus.read16(self.program_counter);
                 self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteX => {
-                address = self.memory.read16(self.program_counter) +% self.register_x;
+                address = self.bus.read16(self.program_counter) +% self.register_x;
                 self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteY => {
-                address = self.memory.read16(self.program_counter) +% self.register_y;
+                address = self.bus.read16(self.program_counter) +% self.register_y;
                 self.program_counter += 2;
             },
 
             AddressingMode.Indirect => {
-                const ptr: u16 = self.memory.read16(self.program_counter);
+                const ptr: u16 = self.bus.read16(self.program_counter);
                 self.program_counter += 2;
 
                 // Emulating hardware bug: if low byte is 0xFF, usually we read hight byte of
                 // actual address from another page, but this chip wraps address back to the
                 // same page TODO: test this please
                 if (ptr & 0x00FF == 0x00FF) {
-                    address = (@intCast(u16, self.memory.read8(ptr & 0xFF00)) << 8) | self.memory.read8(ptr);
+                    address = (@intCast(u16, self.bus.read8(ptr & 0xFF00)) << 8) | self.bus.read8(ptr);
                 } else {
-                    address = (@intCast(u16, self.memory.read8(ptr + 1)) << 8) | self.memory.read8(ptr);
+                    address = (@intCast(u16, self.bus.read8(ptr + 1)) << 8) | self.bus.read8(ptr);
                 }
             },
 
             AddressingMode.IndirectX => {
-                const ptr: u8 = self.memory.read8(self.program_counter) +% self.register_x;
+                const ptr: u8 = self.bus.read8(self.program_counter) +% self.register_x;
                 self.program_counter += 1;
 
-                const lo: u16 = self.memory.read8(ptr);
-                const hi: u16 = self.memory.read8(ptr +% 1);
+                const lo: u16 = self.bus.read8(ptr);
+                const hi: u16 = self.bus.read8(ptr +% 1);
                 address = (hi << 8) | (lo);
             },
 
             AddressingMode.IndirectY => {
-                const base: u8 = self.memory.read8(self.program_counter);
+                const base: u8 = self.bus.read8(self.program_counter);
                 self.program_counter += 1;
 
-                const lo: u16 = self.memory.read8(base);
-                const hi: u16 = self.memory.read8(base +% 1);
+                const lo: u16 = self.bus.read8(base);
+                const hi: u16 = self.bus.read8(base +% 1);
 
                 const deref = (hi << 8) | (lo);
                 address = deref +% self.register_y;
@@ -490,13 +493,13 @@ pub const CPU = struct {
     // Stack Flags operations
 
     fn pushToStack(self: *CPU, value: u8) void {
-        self.memory.write8(0x0100 + @intCast(u16, self.stack_pointer), value);
+        self.bus.write8(0x0100 + @intCast(u16, self.stack_pointer), value);
         self.decrementStackPointer();
     }
 
     fn popFromStack(self: *CPU) u8 {
         self.incrementStackPointer();
-        return self.memory.read8(0x0100 + @intCast(u16, self.stack_pointer));
+        return self.bus.read8(0x0100 + @intCast(u16, self.stack_pointer));
     }
 
     fn incrementStackPointer(self: *CPU) void {
@@ -552,7 +555,7 @@ pub const CPU = struct {
 
     fn _adc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched: u16 = @intCast(u16, self.memory.read8(address));
+        const fetched: u16 = @intCast(u16, self.bus.read8(address));
 
         const result: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
 
@@ -565,7 +568,7 @@ pub const CPU = struct {
 
     fn _and(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.register_a = self.register_a & self.memory.read8(address);
+        self.register_a = self.register_a & self.bus.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_a);
     }
@@ -578,13 +581,13 @@ pub const CPU = struct {
             self.updateZeroAndNegativeFlag(self.register_a);
         } else {
             const address: u16 = self.getOperandAddress(mode);
-            var fetched: u8 = self.memory.read8(address);
+            var fetched: u8 = self.bus.read8(address);
 
             self.setFlag(StatusFlag.C, (fetched >> 7) == 1);
             fetched <<= 1;
 
             self.updateZeroAndNegativeFlag(fetched);
-            self.memory.write8(address, fetched);
+            self.bus.write8(address, fetched);
         }
     }
 
@@ -611,7 +614,7 @@ pub const CPU = struct {
 
     fn _bit(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.memory.read8(address);
+        const fetched = self.bus.read8(address);
         const value: u8 = self.register_a & fetched;
 
         self.setFlag(StatusFlag.Z, value == 0);
@@ -672,7 +675,7 @@ pub const CPU = struct {
 
     fn _cmp(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.memory.read8(address);
+        const fetched = self.bus.read8(address);
 
         const diff = self.register_a -% fetched;
 
@@ -682,7 +685,7 @@ pub const CPU = struct {
 
     fn _cpx(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.memory.read8(address);
+        const fetched = self.bus.read8(address);
 
         const diff = self.register_x -% fetched;
 
@@ -692,7 +695,7 @@ pub const CPU = struct {
 
     fn _cpy(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.memory.read8(address);
+        const fetched = self.bus.read8(address);
 
         const diff = self.register_y -% fetched;
 
@@ -702,9 +705,9 @@ pub const CPU = struct {
 
     fn _dec(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.memory.read8(address) -% 1;
+        const fetched = self.bus.read8(address) -% 1;
 
-        self.memory.write8(address, fetched);
+        self.bus.write8(address, fetched);
         self.updateZeroAndNegativeFlag(fetched);
     }
 
@@ -720,16 +723,16 @@ pub const CPU = struct {
 
     fn _eor(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.register_a ^= self.memory.read8(address);
+        self.register_a ^= self.bus.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
     fn _inc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.memory.read8(address) +% 1;
+        const fetched = self.bus.read8(address) +% 1;
 
-        self.memory.write8(address, fetched);
+        self.bus.write8(address, fetched);
         self.updateZeroAndNegativeFlag(fetched);
     }
 
@@ -761,21 +764,21 @@ pub const CPU = struct {
 
     fn _lda(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.register_a = self.memory.read8(address);
+        self.register_a = self.bus.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
     fn _ldx(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.register_x = self.memory.read8(address);
+        self.register_x = self.bus.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_x);
     }
 
     fn _ldy(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.register_y = self.memory.read8(address);
+        self.register_y = self.bus.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_y);
     }
@@ -787,18 +790,18 @@ pub const CPU = struct {
             self.updateZeroAndNegativeFlag(self.register_a);
         } else {
             const address: u16 = self.getOperandAddress(mode);
-            var fetched: u8 = self.memory.read8(address);
+            var fetched: u8 = self.bus.read8(address);
 
             self.setFlag(StatusFlag.C, (fetched & 0x01) == 1);
             fetched >>= 1;
             self.updateZeroAndNegativeFlag(fetched);
-            self.memory.write8(address, fetched);
+            self.bus.write8(address, fetched);
         }
     }
 
     fn _ora(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.register_a |= self.memory.read8(address);
+        self.register_a |= self.bus.read8(address);
 
         self.updateZeroAndNegativeFlag(self.register_a);
     }
@@ -821,7 +824,7 @@ pub const CPU = struct {
 
     fn _rol(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var fetched: u8 = self.memory.read8(address);
+        var fetched: u8 = self.bus.read8(address);
 
         const old_carry_flag = self.getFlag(StatusFlag.C);
 
@@ -834,13 +837,13 @@ pub const CPU = struct {
         if (mode == AddressingMode.Accumulator) {
             self.register_a = fetched;
         } else {
-            self.memory.write8(address, fetched);
+            self.bus.write8(address, fetched);
         }
     }
 
     fn _ror(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        var fetched: u8 = self.memory.read8(address);
+        var fetched: u8 = self.bus.read8(address);
 
         const old_carry_flag = self.getFlag(StatusFlag.C);
 
@@ -853,7 +856,7 @@ pub const CPU = struct {
         if (mode == AddressingMode.Accumulator) {
             self.register_a = fetched;
         } else {
-            self.memory.write8(address, fetched);
+            self.bus.write8(address, fetched);
         }
     }
 
@@ -877,7 +880,7 @@ pub const CPU = struct {
 
     fn _sbc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched: u16 = @intCast(u16, self.memory.read8(address)) ^ 0x00FF;
+        const fetched: u16 = @intCast(u16, self.bus.read8(address)) ^ 0x00FF;
 
         const result: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
 
@@ -902,17 +905,17 @@ pub const CPU = struct {
 
     fn _sta(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.memory.write8(address, self.register_a);
+        self.bus.write8(address, self.register_a);
     }
 
     fn _stx(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.memory.write8(address, self.register_x);
+        self.bus.write8(address, self.register_x);
     }
 
     fn _sty(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        self.memory.write8(address, self.register_y);
+        self.bus.write8(address, self.register_y);
     }
 
     fn _tax(self: *CPU) void {
