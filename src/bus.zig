@@ -1,3 +1,54 @@
+// NES Memory Layot
+//
+//
+// ----------------------| 0x0000
+//                       |
+// Zero Page             |
+//                       |
+// ----------------------| 0x0100
+//                       |
+// Stack                 |
+//                       |
+// ----------------------| 0x0200
+//                       |
+// RAM                   |
+//                       |
+// ----------------------| 0x0800
+//                       |
+// Mirrors               |
+//                       |
+// ----------------------| 0x2000
+//                       |
+// I/O Registers         |
+//                       |
+// ----------------------| 0x2008
+//                       |
+// Mirrors               |
+//                       |
+// ----------------------| 0x4000
+//                       |
+// I/O Registers         |
+//                       |
+// ----------------------| 0x4020
+//                       |
+// Expansion Rom         |
+//                       |
+// ----------------------| 0x6000
+//                       |
+// SRAM                  |
+//                       |
+// ----------------------| 0x8000
+//                       |
+// PRG Rom Lower Bank    |
+//                       |
+// ----------------------| 0xC000
+//                       |
+// PRG Rom Uppder Bank   |
+//                       |
+// ----------------------| 0x10000
+//
+//
+
 const mem = @import("std").mem;
 const Rom = @import("rom.zig").Rom;
 
@@ -26,9 +77,13 @@ pub const Bus = struct {
             RAM_BEGIN...RAM_MIRROR_END => {
                 data = self.wram[address & 0x07FF];
             },
-            else => {
-                // TODO: memory access for PPU
+            PPU_BEGIN...PPU_MIRROR_END => {
+                // TODO: memory access for PPUmemory
             },
+            0x8000...0xFFFF => {
+                return self.readPrgRom(address);
+            },
+            else => {},
         }
 
         return data;
@@ -63,5 +118,14 @@ pub const Bus = struct {
     pub fn loadProgram(self: *Bus, program_code: []const u8) void {
         const program_len = program_code.len;
         mem.copy(u8, self.wram[0x0600 .. 0x0600 + program_len], program_code[0..program_len]);
+    }
+
+    fn readPrgRom(self: *Bus, address: u16) u8 {
+        var addr: u16 = address - 0x8000;
+        if (mem.len(self.rom.prg_rom) == 0x4000 and addr >= 0x4000) {
+            //mirror if needed
+            addr = addr % 0x4000;
+        }
+        return self.rom.prg_rom[addr];
     }
 };
