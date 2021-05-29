@@ -56,7 +56,7 @@
 
 const std = @import("std");
 
-const NesHeader = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
+const NES_HEADER = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
 
 const LoadError = error{ UnsupportedMapper, UnsupportedFormat, InvalidFormat };
 
@@ -96,7 +96,7 @@ pub const Rom = struct {
             return LoadError.InvalidFormat;
         }
 
-        if (!std.mem.eql(u8, header[0..4], &NesHeader)) {
+        if (!std.mem.eql(u8, header[0..4], &NES_HEADER)) {
             return LoadError.UnsupportedFormat;
         }
 

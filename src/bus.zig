@@ -1,65 +1,57 @@
 // NES Memory Layot
 //
-// Information about layout from here:
-// https://people.ece.cornell.edu/land/courses/ece4760/FinalProjects/s2009/bhp7_teg25/bhp7_teg25/index.html
 //
-// ------------------------|  0x1000  |-------------------------|  0x1000
-//                         |          |                         |
-//                         |          | PRG Rom Upper Bank      |
-//                         |          |                         |
-//        PRG Rom          |          |-------------------------|  0xC000
-//                         |          |                         |
-//                         |          | PRG Rom Lower Bank      |
-//                         |          |                         |
-// ------------------------|  0x8000  |-------------------------|  0x8000
-//                         |          |                         |
-//         SRAM            |          | SRAM                    |
-//                         |          |                         |
-// ------------------------|  0x6000  |-------------------------|  0x6000
-//                         |          |                         |
-//     Expansion ROM       |          | Expansion ROM           |
-//                         |          |                         |
-// ------------------------|  0x4020  |-------------------------|  0x4020
-//                         |          |                         |
-//                         |          | I/O Registers           |
-//                         |          |                         |
-//                         |          |-------------------------|  0x4000
-//                         |          |                         |
-//     I/O Registers       |          | Mirrors (0x2000-0x2007) |
-//                         |          |                         |
-//                         |          |-------------------------|  0x2008
-//                         |          |                         |
-//                         |          | I/O Registers           |
-//                         |          |                         |
-// ------------------------|  0x2000  |-------------------------|  0x2000
-//                         |          |                         |
-//                         |          | Mirrors (0x0000-0x07FF) |
-//                         |          |                         |
-//                         |          |-------------------------|  0x0800
-//                         |          |                         |
-//                         |          | RAM                     |
-//                         |          |                         |
-//           RAM           |          |-------------------------|  0x0200
-//                         |          |                         |
-//                         |          | Stack                   |
-//                         |          |                         |
-//                         |          |-------------------------|  0x0100
-//                         |          |                         |
-//                         |          | Zero Page               |
-//                         |          |                         |
-// ------------------------|  0x0000  |-------------------------|  0x0000
 //
+// |------------------------|  0x1000  |-------------------------|  0x1000
+// |                        |          | PRG Rom Upper Bank      |
+// |                        |          |                         |
+// |       PRG Rom          |          |- - - - - - - - - - - - -|  0xC000
+// |                        |          | PRG Rom Lower Bank      |
+// |                        |          |                         |
+// |------------------------|  0x8000  |-------------------------|  0x8000
+// |        SRAM            |          | SRAM                    |
+// |                        |          |                         |
+// |------------------------|  0x6000  |-------------------------|  0x6000
+// |    Expansion ROM       |          | Expansion ROM           |
+// |                        |          |                         |
+// |------------------------|  0x4020  |-------------------------|  0x4020
+// |    I/O Registers       |          | I/O Registers           |
+// |                        |          |                         |
+// |------------------------|          |-------------------------|  0x4000
+// |                        |          | Mirrors for range       |
+// |                        |          | [0x2000-0x2007]         |
+// |     PPU Registers      |          |- - - - - - - - - - - - -|  0x2008
+// |                        |          | PPU Registers           |
+// |                        |          |                         |
+// |------------------------|  0x2000  |-------------------------|  0x2000
+// |                        |          | Mirrors for range       |
+// |                        |          | [0x0000-0x07FF]         |
+// |                        |          |- - - - - - - - - - - - -|  0x0800
+// |                        |          | RAM                     |
+// |                        |          |                         |
+// |          RAM           |          |- - - - - - - - - - - - -|  0x0200
+// |                        |          | Stack                   |
+// |                        |          |                         |
+// |                        |          |- - - - - - - - - - - - -|  0x0100
+// |                        |          | Zero Page               |
+// |                        |          |                         |
+// |------------------------|  0x0000  |-------------------------|  0x0000
+//
+//
+// What is Zero Page? https://en.wikipedia.org/wiki/Zero_page
 //
 
 const mem = @import("std").mem;
 const Rom = @import("rom.zig").Rom;
 
-pub const Bus = struct {
-    const RAM_BEGIN: u16 = 0x0000;
-    const RAM_MIRROR_END: u16 = 0x1FFF;
-    const PPU_BEGIN: u16 = 0x2000;
-    const PPU_MIRROR_END: u16 = 0x3FFF;
+const RAM_BEGIN: u16 = 0x0000;
+const RAM_MIRROR_END: u16 = 0x1FFF;
+const PPU_BEGIN: u16 = 0x2000;
+const PPU_MIRROR_END: u16 = 0x3FFF;
+const PRG_ROM_BEGIN: u16 = 0x8000;
+const PRG_ROM_END: u16 = 0xFFFF;
 
+pub const Bus = struct {
     // 2KB of Work RAM available for the CPU
     wram: [0x800]u8 = [_]u8{0} ** 0x800,
 
@@ -82,8 +74,8 @@ pub const Bus = struct {
             PPU_BEGIN...PPU_MIRROR_END => {
                 // TODO: memory access for PPUmemory
             },
-            0x8000...0xFFFF => {
-                return self.readPrgRom(address);
+            PRG_ROM_BEGIN...PRG_ROM_END => {
+                //     return self.readPrgRom(address);
             },
             else => {},
         }
@@ -126,8 +118,8 @@ pub const Bus = struct {
         var addr: u16 = address - 0x8000;
         if (mem.len(self.rom.prg_rom) == 0x4000 and addr >= 0x4000) {
             //mirror if needed
-            addr = addr % 0x4000;
+            addr = addr & 0x4000;
         }
-        return self.rom.prg_rom[addr];
+        return self.rom.prg_rom[address];
     }
 };
