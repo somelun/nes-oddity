@@ -2,20 +2,20 @@
 //
 //
 //
-// |------------------------|  0x1000  |-------------------------|  0x1000
+// |------------------------| 0x10000  |-------------------------| 0x10000
 // |                        |          | PRG Rom Upper Bank      |
 // |                        |          |                         |
-// |       PRG Rom          |          |- - - - - - - - - - - - -|  0xC000
+// |        PRG Rom         |          |- - - - - - - - - - - - -|  0xC000
 // |                        |          | PRG Rom Lower Bank      |
 // |                        |          |                         |
 // |------------------------|  0x8000  |-------------------------|  0x8000
-// |        SRAM            |          | SRAM                    |
+// |         SRAM           |          | SRAM                    |
 // |                        |          |                         |
 // |------------------------|  0x6000  |-------------------------|  0x6000
-// |    Expansion ROM       |          | Expansion ROM           |
+// |     Expansion ROM      |          | Expansion ROM           |
 // |                        |          |                         |
 // |------------------------|  0x4020  |-------------------------|  0x4020
-// |    I/O Registers       |          | I/O Registers           |
+// |     I/O Registers      |          | I/O Registers           |
 // |                        |          |                         |
 // |------------------------|          |-------------------------|  0x4000
 // |                        |          | Mirrors for range       |
@@ -41,6 +41,8 @@
 // What is Zero Page? https://en.wikipedia.org/wiki/Zero_page
 //
 
+const std = @import("std");
+
 const mem = @import("std").mem;
 const Rom = @import("rom.zig").Rom;
 
@@ -55,13 +57,13 @@ pub const Bus = struct {
     // 2KB of Work RAM available for the CPU
     wram: [0x800]u8 = [_]u8{0} ** 0x800,
 
-    rom: *Rom = undefined,
+    rom: Rom = undefined,
 
-    pub fn init(rom: *Rom) Bus {
+    pub fn init(rom: Rom) Bus {
         var bus: Bus = Bus{};
         bus.rom = rom;
 
-        return Bus{};
+        return bus;
     }
 
     pub fn read8(self: *Bus, address: u16) u8 {
@@ -75,7 +77,7 @@ pub const Bus = struct {
                 // TODO: memory access for PPUmemory
             },
             PRG_ROM_BEGIN...PRG_ROM_END => {
-                //     return self.readPrgRom(address);
+                data = self.readPrgRom(address);
             },
             else => {},
         }
@@ -114,12 +116,15 @@ pub const Bus = struct {
         mem.copy(u8, self.wram[0x0600 .. 0x0600 + program_len], program_code[0..program_len]);
     }
 
+    // PRG Rom Size might be 16 or 32 KiB, if 16 KiB, then upper bank
+    // should be mapped to the lower bank
     fn readPrgRom(self: *Bus, address: u16) u8 {
         var addr: u16 = address - 0x8000;
         if (mem.len(self.rom.prg_rom) == 0x4000 and addr >= 0x4000) {
             //mirror if needed
             addr = addr & 0x4000;
         }
-        return self.rom.prg_rom[address];
+
+        return self.rom.prg_rom[addr];
     }
 };

@@ -135,7 +135,7 @@ pub const Rom = struct {
         _ = try file.read(self.prg_rom[0..prg_rom_size]);
         _ = try file.read(self.chr_rom[0..chr_rom_size]);
 
-        std.debug.print("{any},  {any}\n", .{ prg_rom_banks_number, chr_rom_banks_number });
+        // std.debug.print("{any},  {any}\n", .{ prg_rom_banks_number, chr_rom_banks_number });
         // std.debug.print("{any}\n", .{self.chr_rom});
     }
 };

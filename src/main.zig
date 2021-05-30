@@ -42,9 +42,9 @@ pub fn main() anyerror!void {
     var rom = try Rom.init("roms/snake.nes");
     defer rom.deinit();
 
-    var bus = Bus.init(&rom);
+    var bus = Bus.init(rom);
 
-    var cpu = CPU.init(&bus);
+    var cpu = CPU.init(bus);
     cpu.reset();
 
     var buffer: [32 * 32]u24 = undefined;
@@ -52,7 +52,7 @@ pub fn main() anyerror!void {
     var count: u8 = 30;
 
     // sdl loop
-    var quit = true;
+    var quit = false;
     while (!quit) {
         var event: c.SDL_Event = undefined;
 
@@ -85,7 +85,7 @@ pub fn main() anyerror!void {
         bus.write8(0xFE, @intCast(u8, @rem(c.rand(), 16) + 1));
 
         // TODO: count cycles and remove hardcoded count
-        // var cycles: u8 = cpu.cycle();
+        var cycles: u8 = cpu.cycle();
 
         readScreenState(&cpu, &buffer);
         const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));

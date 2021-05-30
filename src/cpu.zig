@@ -29,10 +29,10 @@ pub const CPU = struct {
     program_counter: u16 = 0x0000,
     stack_pointer: u8 = 0xFD,
 
-    bus: *Bus = undefined,
+    bus: Bus = undefined,
     opcodes: AutoHashMap(u8, Opcode),
 
-    pub fn init(bus: *Bus) CPU {
+    pub fn init(bus: Bus) CPU {
         var cpu = CPU{
             .opcodes = OpcodesAPI.generateOpcodes(),
         };
