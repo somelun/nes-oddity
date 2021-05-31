@@ -42,8 +42,8 @@
 //
 
 const std = @import("std");
+const mem = std.mem;
 
-const mem = @import("std").mem;
 const Rom = @import("rom.zig").Rom;
 
 const RAM_BEGIN: u16 = 0x0000;
@@ -89,6 +89,12 @@ pub const Bus = struct {
         switch (address) {
             RAM_BEGIN...RAM_MIRROR_END => {
                 self.wram[address & 0x07FF] = data;
+            },
+            PPU_BEGIN...PPU_MIRROR_END => {
+                // TODO: memory access for PPUmemory
+            },
+            PRG_ROM_BEGIN...PRG_ROM_END => {
+                std.debug.print("Writing to Rom space is not available!\n", .{});
             },
             else => {
                 // TODO: memory access for PPU

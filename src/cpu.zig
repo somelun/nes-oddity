@@ -7,8 +7,7 @@ const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
 
-// TODO: remove this magic number?
-const program_counter_address: u16 = 0xFFFC;
+const PC_ADDRESS: u16 = 0xFFFC;
 
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
@@ -47,7 +46,7 @@ pub const CPU = struct {
         self.register_x = 0;
         self.status = 0;
 
-        self.program_counter = self.bus.read16(program_counter_address);
+        self.program_counter = self.bus.read16(PC_ADDRESS);
     }
 
     pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
@@ -60,11 +59,10 @@ pub const CPU = struct {
         self.bus.loadProgram(program_code);
 
         // program counter stored in memory at 0xFFFC
-        self.bus.write16(program_counter_address, 0x0600);
+        self.bus.write16(PC_ADDRESS, 0x0600);
     }
 
     pub fn cycle(self: *CPU) u8 {
-        // if (self.program_counter < 0xFFFC) { //TODO: remove magic number
         // std.debug.print("initial pc: {}\n", .{self.program_counter});
         const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter += 1;
@@ -82,7 +80,6 @@ pub const CPU = struct {
 
         // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
         self.handleOpcode(value, addressing_mode);
-        // }
 
         return 0;
     }
