@@ -42,9 +42,9 @@ pub fn main() anyerror!void {
     var rom = try Rom.init("roms/snake.nes");
     defer rom.deinit();
 
-    var bus = Bus.init(rom);
+    var bus = Bus.init(&rom);
 
-    var cpu = CPU.init(bus);
+    var cpu = CPU.init(&bus);
     cpu.reset();
 
     var buffer: [32 * 32]u24 = undefined;

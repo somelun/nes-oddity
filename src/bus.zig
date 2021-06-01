@@ -57,9 +57,9 @@ pub const Bus = struct {
     // 2KB of Work RAM available for the CPU
     wram: [0x800]u8 = [_]u8{0} ** 0x800,
 
-    rom: Rom = undefined,
+    rom: *Rom = undefined,
 
-    pub fn init(rom: Rom) Bus {
+    pub fn init(rom: *Rom) Bus {
         var bus: Bus = Bus{};
         bus.rom = rom;
 
