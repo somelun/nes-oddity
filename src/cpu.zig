@@ -7,6 +7,7 @@ const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
 
+const stdout = std.io.getStdOut().writer();
 const PC_ADDRESS: u16 = 0xFFFC;
 
 const StatusFlag = enum(u8) {
@@ -73,6 +74,8 @@ pub const CPU = struct {
 
         const opcode: ?Opcode = self.opcodes.get(value);
         if (opcode == null) {
+            // try stdout.print("Unsupported instruction! {X}\n", .{value});
+            std.debug.print("Unsupported instruction! {X}\n", .{value});
             return 0;
         }
 
