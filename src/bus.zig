@@ -128,7 +128,7 @@ pub const Bus = struct {
         var addr: u16 = address - 0x8000;
         if (mem.len(self.rom.prg_rom) == 0x4000 and addr >= 0x4000) {
             //mirror if needed
-            addr = addr & 0x4000;
+            addr = addr % 0x4000;
         }
 
         return self.rom.prg_rom[addr];

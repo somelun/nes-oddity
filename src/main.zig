@@ -105,6 +105,7 @@ pub fn main() anyerror!void {
         // thats what required to imlement, I'll do this after implementing Bus
         // and starting to do PPU
     }
+    // std.log.info("test log\n", .{});
 }
 
 fn convertByteToColor(byte: u8) Color {
