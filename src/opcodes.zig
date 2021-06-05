@@ -19,8 +19,12 @@ pub const AddressingMode = enum {
 
 pub const OpcodeName = enum {
     ADC,
+    AHX, // illegal
+    ANC, // illegal
     AND,
+    ARR, // illegal
     ASL,
+    AXS, // illegal
     BCC,
     BCS,
     BEQ,
@@ -38,6 +42,7 @@ pub const OpcodeName = enum {
     CMP,
     CPX,
     CPY,
+    DCP, //illegal
     DEC,
     DEX,
     DEY,
@@ -45,8 +50,11 @@ pub const OpcodeName = enum {
     INC,
     INX,
     INY,
+    ISC, // illegal
     JMP,
     JSR,
+    LAS, // illegal
+    LAX, // illegal
     LDA,
     LDX,
     LDY,
@@ -57,23 +65,32 @@ pub const OpcodeName = enum {
     PHP,
     PLA,
     PLP,
+    RLA, // illegal
     ROL,
     ROR,
+    RRA, // illegal
     RTI,
     RTS,
-    SBC,
+    SAX, // illegal
+    SBC, // hm ?
     SEC,
     SED,
     SEI,
+    SHX, // illegal
+    SHY, // illegal
+    SLO, // illegal
+    SRE, // illegal
     STA,
     STX,
     STY,
+    TAS, // illegal
     TAX,
     TAY,
     TSX,
     TXA,
     TXS,
     TYA,
+    XAA, //illegal
 };
 
 pub const Opcode = struct {
