@@ -53,6 +53,7 @@ pub const OpcodeName = enum {
     ISC, // illegal
     JMP,
     JSR,
+    KIL, // illegal
     LAS, // illegal
     LAX, // illegal
     LDA,
@@ -109,15 +110,14 @@ pub const Opcode = struct {
     }
 };
 
-var _opcodes: comptime [0x100]Opcode = foo();
+// var _opcodes: comptime [0x100]Opcode = foo();
 
 fn foo() [0x100]Opcode {
-    var test_opcodes: [0x100]Opcode;
-
+    // var test_opcodes: [0x100]Opcode;
     opcodes[0x00] = Opcode.init(OpcodeName.BRK, AddressingMode.Implied, 1, 7);
+    opcodes[0x01] = Opcode.init(OpcodeName.ORA, AddressingMode.IndirectX, 2, 6);
+    opcodes[0x02] = Opcode.init(OpcodeName.NOP, AddressingMode.IndirectX, 1, 2);
 
-    // opcodes[0x01] =
-    // opcodes[0x02] =
     // opcodes[0x03] =
     // opcodes[0x04] =
     // opcodes[0x05] =

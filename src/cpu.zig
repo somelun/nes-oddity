@@ -10,6 +10,8 @@ const AddressingMode = OpcodesAPI.AddressingMode;
 const stdout = std.io.getStdOut().writer();
 const PC_ADDRESS: u16 = 0xFFFC;
 
+const DEBUG_LOG: bool = true;
+
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
     Z = (1 << 1), // zero
@@ -81,9 +83,12 @@ pub const CPU = struct {
 
         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
+        // std.debug.print("{X} ", .{self.program_counter});
+
         // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
         self.handleOpcode(value, addressing_mode);
 
+        // std.debug.print("\n", .{});
         return 0;
     }
 
