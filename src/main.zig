@@ -53,7 +53,6 @@ pub fn main() anyerror!void {
 
     var count: u8 = 30;
 
-    std.log.info("test log\n", .{});
     // sdl loop
     var quit = false;
     while (!quit) {

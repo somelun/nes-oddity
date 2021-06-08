@@ -1,16 +1,17 @@
 const std = @import("std");
 const AutoHashMap = std.AutoHashMap;
 
-const Bus = @import("bus.zig").Bus;
+const builtin = @import("builtin");
+const dbg = builtin.mode == builtin.Mode.Debug;
+const stdout = std.io.getStdOut().writer(); // for debug I print log to stdout
 
+const Bus = @import("bus.zig").Bus;
 const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
 
-const stdout = std.io.getStdOut().writer();
+// all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
-
-const DEBUG_LOG: bool = true;
 
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
@@ -38,7 +39,6 @@ pub const CPU = struct {
         var cpu = CPU{
             .opcodes = OpcodesAPI.generateOpcodes(),
         };
-
         cpu.bus = bus;
 
         return cpu;
@@ -66,7 +66,7 @@ pub const CPU = struct {
     }
 
     pub fn cycle(self: *CPU) u8 {
-        // std.debug.print("initial pc: {}\n", .{self.program_counter});
+        const dbg_pc: u16 = self.program_counter;
         const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter += 1;
 
@@ -76,19 +76,20 @@ pub const CPU = struct {
 
         const opcode: ?Opcode = self.opcodes.get(value);
         if (opcode == null) {
-            // try stdout.print("Unsupported instruction! {X}\n", .{value});
             std.debug.print("Unsupported instruction! {X}\n", .{value});
             return 0;
         }
 
         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
-        // std.debug.print("{X} ", .{self.program_counter});
-
         // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
         self.handleOpcode(value, addressing_mode);
 
-        // std.debug.print("\n", .{});
+        if (dbg) {
+            //try stdout.print("Hello, {s}!\n", .{"world"});
+            std.log.info("{X}\n", .{dbg_pc});
+        }
+
         return 0;
     }
 
