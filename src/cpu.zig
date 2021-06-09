@@ -62,15 +62,18 @@ pub const CPU = struct {
         self.bus.loadProgram(program_code);
 
         // program counter stored in memory at 0xFFFC
-        self.bus.write16(PC_ADDRESS, 0x0600);
+        self.bus.write16(PC_ADDRESS, 0xFFFC);
     }
 
     pub fn cycle(self: *CPU) u8 {
-        const dbg_pc: u16 = self.program_counter;
         const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter += 1;
 
-        // these flags are unused in this emulation
+        // store initial PC value for the later incrementation if it not
+        // changed (for example afger branch instruction)
+        const initial_pc: u16 = self.program_counter;
+
+        // these flags are unused in the emulation
         self.setFlag(StatusFlag.U, true);
         self.setFlag(StatusFlag.I, true);
 
@@ -85,11 +88,19 @@ pub const CPU = struct {
         // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
         self.handleOpcode(value, addressing_mode);
 
-        if (dbg) {
-            //try stdout.print("Hello, {s}!\n", .{"world"});
-            std.log.info("{X}\n", .{dbg_pc});
+        // if (dbg) {
+        //try stdout.print("Hello, {s}!\n", .{"world"});
+        // std.log.info("{X}  {X}  {any}", .{ initial_pc, value, opcode.?.name });
+        // }
+
+        // std.log.info("{d}", .{opcode.?.length});
+
+        // in the end we increment program counter according to opcode length
+        if (self.program_counter == initial_pc) {
+            self.program_counter += (opcode.?.length - 1);
         }
 
+        // std.debug.print("pc after: {}, length: {d}\n", .{ self.program_counter, opcode.?.length });
         return 0;
     }
 
@@ -124,29 +135,29 @@ pub const CPU = struct {
 
             AddressingMode.Immediate => {
                 address = self.program_counter;
-                self.program_counter += 1;
+                // self.program_counter += 1;
             },
 
             AddressingMode.ZeroPage => {
                 address = self.bus.read8(self.program_counter);
-                self.program_counter += 1;
+                // self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageX => {
                 address = self.bus.read8(self.program_counter) +% self.register_x;
-                self.program_counter += 1;
+                // self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageY => {
                 address = self.bus.read8(self.program_counter) +% self.register_y;
-                self.program_counter += 1;
+                // self.program_counter += 1;
             },
 
             AddressingMode.Relative => {
                 var offset: u8 = self.bus.read8(self.program_counter);
-                self.program_counter += 1;
+                // self.program_counter += 1;
 
-                address = self.program_counter +% offset;
+                address = self.program_counter +% offset +% 1;
 
                 // if the offset is negative
                 if (offset > 0x7F) {
@@ -156,22 +167,22 @@ pub const CPU = struct {
 
             AddressingMode.Absolute => {
                 address = self.bus.read16(self.program_counter);
-                self.program_counter += 2;
+                // self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteX => {
                 address = self.bus.read16(self.program_counter) +% self.register_x;
-                self.program_counter += 2;
+                // self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteY => {
                 address = self.bus.read16(self.program_counter) +% self.register_y;
-                self.program_counter += 2;
+                // self.program_counter += 2;
             },
 
             AddressingMode.Indirect => {
                 const ptr: u16 = self.bus.read16(self.program_counter);
-                self.program_counter += 2;
+                // self.program_counter += 2;
 
                 // Emulating hardware bug: if low byte is 0xFF, usually we read hight byte of
                 // actual address from another page, but this chip wraps address back to the
@@ -185,7 +196,7 @@ pub const CPU = struct {
 
             AddressingMode.IndirectX => {
                 const ptr: u8 = self.bus.read8(self.program_counter) +% self.register_x;
-                self.program_counter += 1;
+                // self.program_counter += 1;
 
                 const lo: u16 = self.bus.read8(ptr);
                 const hi: u16 = self.bus.read8(ptr +% 1);
@@ -194,7 +205,7 @@ pub const CPU = struct {
 
             AddressingMode.IndirectY => {
                 const base: u8 = self.bus.read8(self.program_counter);
-                self.program_counter += 1;
+                // self.program_counter += 1;
 
                 const lo: u16 = self.bus.read8(base);
                 const hi: u16 = self.bus.read8(base +% 1);
@@ -880,6 +891,8 @@ pub const CPU = struct {
     fn _rts(self: *CPU) void {
         const hi: u8 = self.popFromStack();
         const lo: u8 = self.popFromStack();
+
+        std.debug.print("PC: {X}, hi: {X}, lo: {X}\n", .{ self.program_counter, hi, lo });
 
         self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
     }

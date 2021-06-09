@@ -40,8 +40,8 @@ pub fn main() anyerror!void {
     defer c.SDL_DestroyTexture(texture);
 
     // test rom from this url https://wiki.nesdev.com/w/index.php/Emulator_tests
-    var rom = try Rom.init("roms/nestest.nes");
-    // var rom = try Rom.init("roms/snake.nes");
+    // var rom = try Rom.init("roms/nestest.nes");
+    var rom = try Rom.init("roms/snake.nes");
     defer rom.deinit();
 
     var bus = Bus.init(&rom);

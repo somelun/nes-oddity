@@ -97,14 +97,14 @@ pub const OpcodeName = enum {
 pub const Opcode = struct {
     name: OpcodeName,
     addressing_mode: AddressingMode,
-    bytes: u8,
+    length: u8,
     cycles: u8,
 
-    pub fn init(name: OpcodeName, addressing_mode: AddressingMode, bytes: u8, cycles: u8) Opcode {
+    pub fn init(name: OpcodeName, addressing_mode: AddressingMode, length: u8, cycles: u8) Opcode {
         return Opcode{
             .name = name,
             .addressing_mode = addressing_mode,
-            .bytes = bytes,
+            .length = length,
             .cycles = cycles,
         };
     }
