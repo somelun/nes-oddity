@@ -93,6 +93,8 @@ pub const CPU = struct {
             self.program_counter += (opcode.?.length - 1);
         }
 
+        // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
+
         return 0;
     }
 
@@ -510,7 +512,7 @@ pub const CPU = struct {
     }
 
     ///////////////////////////////////////////////////////
-    // Status Flags operations
+    // Status Flags Operations
 
     fn updateZeroAndNegativeFlag(self: *CPU, value: u8) void {
         self.updateZeroFlag(value);
