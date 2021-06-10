@@ -88,19 +88,11 @@ pub const CPU = struct {
         // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
         self.handleOpcode(value, addressing_mode);
 
-        // if (dbg) {
-        //try stdout.print("Hello, {s}!\n", .{"world"});
-        // std.log.info("{X}  {X}  {any}", .{ initial_pc, value, opcode.?.name });
-        // }
-
-        // std.log.info("{d}", .{opcode.?.length});
-
         // in the end we increment program counter according to opcode length
         if (self.program_counter == initial_pc) {
             self.program_counter += (opcode.?.length - 1);
         }
 
-        // std.debug.print("pc after: {}, length: {d}\n", .{ self.program_counter, opcode.?.length });
         return 0;
     }
 
@@ -135,27 +127,22 @@ pub const CPU = struct {
 
             AddressingMode.Immediate => {
                 address = self.program_counter;
-                // self.program_counter += 1;
             },
 
             AddressingMode.ZeroPage => {
                 address = self.bus.read8(self.program_counter);
-                // self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageX => {
                 address = self.bus.read8(self.program_counter) +% self.register_x;
-                // self.program_counter += 1;
             },
 
             AddressingMode.ZeroPageY => {
                 address = self.bus.read8(self.program_counter) +% self.register_y;
-                // self.program_counter += 1;
             },
 
             AddressingMode.Relative => {
                 var offset: u8 = self.bus.read8(self.program_counter);
-                // self.program_counter += 1;
 
                 address = self.program_counter +% offset +% 1;
 
@@ -167,22 +154,18 @@ pub const CPU = struct {
 
             AddressingMode.Absolute => {
                 address = self.bus.read16(self.program_counter);
-                // self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteX => {
                 address = self.bus.read16(self.program_counter) +% self.register_x;
-                // self.program_counter += 2;
             },
 
             AddressingMode.AbsoluteY => {
                 address = self.bus.read16(self.program_counter) +% self.register_y;
-                // self.program_counter += 2;
             },
 
             AddressingMode.Indirect => {
                 const ptr: u16 = self.bus.read16(self.program_counter);
-                // self.program_counter += 2;
 
                 // Emulating hardware bug: if low byte is 0xFF, usually we read hight byte of
                 // actual address from another page, but this chip wraps address back to the
@@ -196,7 +179,6 @@ pub const CPU = struct {
 
             AddressingMode.IndirectX => {
                 const ptr: u8 = self.bus.read8(self.program_counter) +% self.register_x;
-                // self.program_counter += 1;
 
                 const lo: u16 = self.bus.read8(ptr);
                 const hi: u16 = self.bus.read8(ptr +% 1);
@@ -205,7 +187,6 @@ pub const CPU = struct {
 
             AddressingMode.IndirectY => {
                 const base: u8 = self.bus.read8(self.program_counter);
-                // self.program_counter += 1;
 
                 const lo: u16 = self.bus.read8(base);
                 const hi: u16 = self.bus.read8(base +% 1);
@@ -218,7 +199,6 @@ pub const CPU = struct {
         return address;
     }
 
-    // TODO: return bool
     fn handleOpcode(self: *CPU, value: u8, addressing_mode: AddressingMode) void {
         switch (value) {
             // ADC: Add Memory to Accumulator with Carry
@@ -507,7 +487,7 @@ pub const CPU = struct {
     }
 
     ///////////////////////////////////////////////////////
-    // Stack Flags operations
+    // Stack Operations
 
     fn pushToStack(self: *CPU, value: u8) void {
         self.bus.write8(0x0100 + @intCast(u16, self.stack_pointer), value);
@@ -771,8 +751,8 @@ pub const CPU = struct {
     fn _jsr(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
 
-        const lo: u8 = @intCast(u8, (self.program_counter >> 8) & 0xFF);
-        const hi: u8 = @intCast(u8, self.program_counter & 0xFF);
+        const lo: u8 = @intCast(u8, ((self.program_counter + 2) >> 8) & 0xFF);
+        const hi: u8 = @intCast(u8, (self.program_counter + 2) & 0xFF);
         self.pushToStack(lo);
         self.pushToStack(hi);
 
@@ -891,8 +871,6 @@ pub const CPU = struct {
     fn _rts(self: *CPU) void {
         const hi: u8 = self.popFromStack();
         const lo: u8 = self.popFromStack();
-
-        std.debug.print("PC: {X}, hi: {X}, lo: {X}\n", .{ self.program_counter, hi, lo });
 
         self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
     }
@@ -1017,14 +995,3 @@ test "adc_different" {
     cpu.loadAndRun(&[_]u8{ 0xA9, 0x12, 0x69, 0x12, 0x00 });
     std.testing.expect(cpu.register_a == 0x24);
 }
-
-// test "multiplication" {
-//     var cpu = CPU.init();
-//     cpu.loadAndRun(&[_]u8{
-//         0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E,
-//         0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18,
-//         0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02,
-//         0x00, 0xEA, 0xEA, 0xEA,
-//     });
-//     // std.testing.expect(cpu.register_a == 0)
-// }
