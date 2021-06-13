@@ -18,7 +18,7 @@ pub const AddressingMode = enum {
 };
 
 pub const Opcode = struct {
-    name: []const u8, // TODO: replace with [3]u8
+    name: []const u8, // TODO: replace with [3]u8 maybe?
     addressing_mode: AddressingMode,
     length: u8,
     cycles: u8,

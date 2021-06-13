@@ -1,8 +1,8 @@
 const std = @import("std");
 const AutoHashMap = std.AutoHashMap;
 
-const builtin = @import("builtin");
-const dbg = builtin.mode == builtin.Mode.Debug;
+const DEBUG_LOG: bool = true;
+
 const stdout = std.io.getStdOut().writer(); // for debug I print log to stdout
 
 const Bus = @import("bus.zig").Bus;
@@ -85,7 +85,10 @@ pub const CPU = struct {
 
         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
-        // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
+        if (DEBUG_LOG) {
+            std.debug.print("{X}  {X} ", .{ self.program_counter, value });
+        }
+
         self.handleOpcode(value, addressing_mode);
 
         // in the end we increment program counter according to opcode length
@@ -93,7 +96,10 @@ pub const CPU = struct {
             self.program_counter += (opcode.?.length - 1);
         }
 
-        // std.debug.print("opcode: {}, pc: {}, status: {b}\n", .{ value, self.program_counter, self.status });
+        if (DEBUG_LOG) {
+            std.debug.print("{s}", .{opcode.?.name});
+            std.debug.print("\n", .{});
+        }
 
         return 0;
     }
@@ -196,6 +202,12 @@ pub const CPU = struct {
                 const deref = (hi << 8) | (lo);
                 address = deref +% self.register_y;
             },
+        }
+
+        if (DEBUG_LOG) {
+            const hi = @intCast(u8, address >> 8);
+            const lo = @intCast(u8, address & 0xFF);
+            std.debug.print("{X:2} {X:2} ", .{ lo, hi });
         }
 
         return address;
