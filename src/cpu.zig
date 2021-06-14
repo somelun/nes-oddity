@@ -97,6 +97,9 @@ pub const CPU = struct {
         }
 
         if (DEBUG_LOG) {
+            if (addressing_mode == AddressingMode.Implied) {
+                std.debug.print("       ", .{});
+            }
             std.debug.print("{s}", .{opcode.?.name});
             std.debug.print("\n", .{});
         }
@@ -207,7 +210,7 @@ pub const CPU = struct {
         if (DEBUG_LOG) {
             const hi = @intCast(u8, address >> 8);
             const lo = @intCast(u8, address & 0xFF);
-            std.debug.print("{X:2} {X:2} ", .{ lo, hi });
+            std.debug.print("{X:0>2} {X:0>2}  ", .{ lo, hi });
         }
 
         return address;
@@ -962,50 +965,57 @@ pub const CPU = struct {
 ///////////////////////////////////////////////////////////
 // Tests
 
-test "addressing_mode_impied" {
-    var cpu = CPU.init();
-    cpu.load(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
-}
+// test "addressing_mode_impied" {
+//     var cpu = CPU.init();
+//     cpu.load(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
+// }
+//
+// test "0xA9_LDA_immidiate_load_data" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
+//     std.testing.expect(cpu.register_a == 0x05);
+// }
+//
+// test "0xA9_LDA_zero_flag" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{ 0xA9, 0x00, 0x00 });
+//     std.debug.assert(cpu.status & 0b0000_0010 == 0b10);
+// }
+//
+// test "0xA9_LDA_negative_flag" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{ 0xa9, 0xff, 0x00 });
+//     std.debug.assert(cpu.status & 0b1000_0000 == 0b1000_0000);
+// }
+//
+// test "0xAA_TAX_move_a_to_x" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
+//     std.testing.expect(cpu.register_x == 10);
+// }
+//
+// test "INX_overflow" {
+//     var cpu = CPU.init();
+//     cpu.register_x = 0xFF;
+//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xFF, 0xAA, 0xE8, 0xE8, 0x00 });
+//     std.testing.expect(cpu.register_x == 1);
+// }
+//
+// test "5_ops_working_together" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
+//     std.testing.expect(cpu.register_x == 0xc1);
+// }
+//
+// test "adc_different" {
+//     var cpu = CPU.init();
+//     cpu.loadAndRun(&[_]u8{ 0xA9, 0x12, 0x69, 0x12, 0x00 });
+//     std.testing.expect(cpu.register_a == 0x24);
+// }
 
-test "0xA9_LDA_immidiate_load_data" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0x05, 0x03, 0x00 });
-    std.testing.expect(cpu.register_a == 0x05);
-}
+test "print" {
+    const asd: u8 = 55;
+    const das: u8 = 123;
 
-test "0xA9_LDA_zero_flag" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0x00, 0x00 });
-    std.debug.assert(cpu.status & 0b0000_0010 == 0b10);
-}
-
-test "0xA9_LDA_negative_flag" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xa9, 0xff, 0x00 });
-    std.debug.assert(cpu.status & 0b1000_0000 == 0b1000_0000);
-}
-
-test "0xAA_TAX_move_a_to_x" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0xA, 0xAA, 0x00 });
-    std.testing.expect(cpu.register_x == 10);
-}
-
-test "INX_overflow" {
-    var cpu = CPU.init();
-    cpu.register_x = 0xFF;
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0xFF, 0xAA, 0xE8, 0xE8, 0x00 });
-    std.testing.expect(cpu.register_x == 1);
-}
-
-test "5_ops_working_together" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0xC0, 0xAA, 0xE8, 0x00 });
-    std.testing.expect(cpu.register_x == 0xc1);
-}
-
-test "adc_different" {
-    var cpu = CPU.init();
-    cpu.loadAndRun(&[_]u8{ 0xA9, 0x12, 0x69, 0x12, 0x00 });
-    std.testing.expect(cpu.register_a == 0x24);
+    std.debug.print("{d:<} {d:0>4}\n", .{ das, asd });
 }
