@@ -39,9 +39,7 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
-    // test rom from this url https://wiki.nesdev.com/w/index.php/Emulator_tests
-    var rom = try Rom.init("roms/nestest.nes");
-    // var rom = try Rom.init("roms/snake.nes");
+    var rom = try Rom.init("roms/snake.nes");
     defer rom.deinit();
 
     var bus = Bus.init(&rom);
@@ -158,5 +156,27 @@ fn readScreenState(cpu: *CPU, buffer: []u24) void {
 
         buffer[index] = (@as(u24, color.r) << 16) + (@as(u24, color.g) << 8) + @as(u24, color.b);
         index += 1;
+    }
+}
+
+test "nestest" {
+    // nestes is rom from this place https://wiki.nesdev.com/w/index.php/Emulator_tests
+    // more information: https://www.qmtpro.com/~nes/misc/nestest.txt
+    var rom = try Rom.init("roms/nestest.nes");
+    defer rom.deinit();
+
+    var bus = Bus.init(&rom);
+
+    var cpu = CPU.init(&bus);
+    cpu.reset();
+
+    // according to documentation, to run this rom in automation mode,
+    // program counter should be set to 0xC000
+    cpu.program_counter = 0xC000;
+
+    std.debug.print("\n", .{});
+    var cycles: u8 = cpu.cycle();
+    while (cycles > 0) {
+        cycles = cpu.cycle();
     }
 }

@@ -66,12 +66,12 @@ pub const CPU = struct {
     }
 
     pub fn cycle(self: *CPU) u8 {
-        const value: u8 = self.bus.read8(self.program_counter);
-        self.program_counter += 1;
-
         // store initial PC value for the later incrementation if it not
         // changed (for example afger branch instruction)
         const initial_pc: u16 = self.program_counter;
+
+        const value: u8 = self.bus.read8(self.program_counter);
+        self.program_counter += 1;
 
         // these flags are unused in the emulation
         self.setFlag(StatusFlag.U, true);
@@ -86,13 +86,13 @@ pub const CPU = struct {
         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
         if (DEBUG_LOG) {
-            std.debug.print("{X}  {X} ", .{ self.program_counter, value });
+            std.debug.print("{X}  {X} ", .{ initial_pc, value });
         }
 
         self.handleOpcode(value, addressing_mode);
 
         // in the end we increment program counter according to opcode length
-        if (self.program_counter == initial_pc) {
+        if (self.program_counter == initial_pc + 1) {
             self.program_counter += (opcode.?.length - 1);
         }
 
@@ -104,7 +104,7 @@ pub const CPU = struct {
             std.debug.print("\n", .{});
         }
 
-        return 0;
+        return opcode.?.length;
     }
 
     // used to tests
@@ -1012,10 +1012,3 @@ pub const CPU = struct {
 //     cpu.loadAndRun(&[_]u8{ 0xA9, 0x12, 0x69, 0x12, 0x00 });
 //     std.testing.expect(cpu.register_a == 0x24);
 // }
-
-test "print" {
-    const asd: u8 = 55;
-    const das: u8 = 123;
-
-    std.debug.print("{d:<} {d:0>4}\n", .{ das, asd });
-}
