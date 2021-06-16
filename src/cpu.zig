@@ -97,10 +97,16 @@ pub const CPU = struct {
         }
 
         if (DEBUG_LOG) {
+            // print disassembler code
             if (addressing_mode == AddressingMode.Implied) {
                 std.debug.print("       ", .{});
             }
             std.debug.print("{s}", .{opcode.?.name});
+
+            // print registers status
+            std.debug.print("                    ", .{});
+            std.debug.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2}", .{ self.register_a, self.register_x, self.register_y });
+
             std.debug.print("\n", .{});
         }
 
@@ -208,9 +214,15 @@ pub const CPU = struct {
         }
 
         if (DEBUG_LOG) {
+            // print current opcode
             const hi = @intCast(u8, address >> 8);
             const lo = @intCast(u8, address & 0xFF);
-            std.debug.print("{X:0>2} {X:0>2}  ", .{ lo, hi });
+            std.debug.print("{X:0>2} ", .{lo});
+            if (hi > 0) {
+                std.debug.print("{X:0>2}  ", .{hi});
+            } else {
+                std.debug.print("    ", .{});
+            }
         }
 
         return address;
