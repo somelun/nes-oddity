@@ -70,6 +70,10 @@ pub const CPU = struct {
         // changed (for example afger branch instruction)
         const initial_pc: u16 = self.program_counter;
 
+        const initial_a: u16 = self.register_a;
+        const initial_x: u16 = self.register_x;
+        const initial_y: u16 = self.register_y;
+
         const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter += 1;
 
@@ -105,7 +109,7 @@ pub const CPU = struct {
 
             // print registers status
             std.debug.print("                    ", .{});
-            std.debug.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2}", .{ self.register_a, self.register_x, self.register_y });
+            std.debug.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2}", .{ initial_a, initial_x, initial_y });
 
             std.debug.print("\n", .{});
         }
