@@ -1,7 +1,7 @@
 const std = @import("std");
 const AutoHashMap = std.AutoHashMap;
 
-const DEBUG_LOG: bool = true;
+const DEBUG_LOG: bool = false;
 
 const stdout = std.io.getStdOut().writer(); // for debug I print log to stdout
 
