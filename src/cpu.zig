@@ -1,14 +1,12 @@
 const std = @import("std");
 const AutoHashMap = std.AutoHashMap;
 
-const DEBUG_LOG: bool = false;
-
-const stdout = std.io.getStdOut().writer(); // for debug I print log to stdout
-
 const Bus = @import("bus.zig").Bus;
 const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
+
+const Tracer = @import("tracer.zig");
 
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
@@ -35,6 +33,9 @@ pub const CPU = struct {
     bus: *Bus = undefined,
     opcodes: AutoHashMap(u8, Opcode),
 
+    // if true, debug trace will be printed (used for nestest.rom)
+    debug_trace: bool = false,
+
     pub fn init(bus: *Bus) CPU {
         var cpu = CPU{
             .opcodes = OpcodesAPI.generateOpcodes(),
@@ -42,6 +43,10 @@ pub const CPU = struct {
         cpu.bus = bus;
 
         return cpu;
+    }
+
+    pub fn foo() void {
+        const a: u8 = 0;
     }
 
     pub fn reset(self: *CPU) void {
@@ -66,13 +71,12 @@ pub const CPU = struct {
     }
 
     pub fn cycle(self: *CPU) u8 {
+        if (self.debug_trace) {
+            Tracer.trace(self);
+        }
         // store initial PC value for the later incrementation if it not
-        // changed (for example afger branch instruction)
+        // changed (for example after branch instruction)
         const initial_pc: u16 = self.program_counter;
-
-        const initial_a: u16 = self.register_a;
-        const initial_x: u16 = self.register_x;
-        const initial_y: u16 = self.register_y;
 
         const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter += 1;
@@ -89,29 +93,11 @@ pub const CPU = struct {
 
         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
-        if (DEBUG_LOG) {
-            std.debug.print("{X}  {X} ", .{ initial_pc, value });
-        }
-
         self.handleOpcode(value, addressing_mode);
 
         // in the end we increment program counter according to opcode length
         if (self.program_counter == initial_pc + 1) {
             self.program_counter += (opcode.?.length - 1);
-        }
-
-        if (DEBUG_LOG) {
-            // print disassembler code
-            if (addressing_mode == AddressingMode.Implied) {
-                std.debug.print("       ", .{});
-            }
-            std.debug.print("{s}", .{opcode.?.name});
-
-            // print registers status
-            std.debug.print("                    ", .{});
-            std.debug.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2}", .{ initial_a, initial_x, initial_y });
-
-            std.debug.print("\n", .{});
         }
 
         return opcode.?.length;
@@ -217,17 +203,17 @@ pub const CPU = struct {
             },
         }
 
-        if (DEBUG_LOG) {
-            // print current opcode
-            const hi = @intCast(u8, address >> 8);
-            const lo = @intCast(u8, address & 0xFF);
-            std.debug.print("{X:0>2} ", .{lo});
-            if (hi > 0) {
-                std.debug.print("{X:0>2}  ", .{hi});
-            } else {
-                std.debug.print("    ", .{});
-            }
-        }
+        // if (DEBUG_LOG) {
+        //     // print current opcode
+        //     const hi = @intCast(u8, address >> 8);
+        //     const lo = @intCast(u8, address & 0xFF);
+        //     std.debug.print("{X:0>2} ", .{lo});
+        //     if (hi > 0) {
+        //         std.debug.print("{X:0>2}  ", .{hi});
+        //     } else {
+        //         std.debug.print("    ", .{});
+        //     }
+        // }
 
         return address;
     }

@@ -8,9 +8,7 @@ const Rom = @import("rom.zig").Rom;
 const Bus = @import("bus.zig").Bus;
 const CPU = @import("cpu.zig").CPU;
 
-const Color = struct {
-    r: u8, g: u8, b: u8 = 0
-};
+const Color = struct { r: u8, g: u8, b: u8 = 0 };
 
 pub fn main() anyerror!void {
     c.srand(@intCast(u32, c.time(0)));
@@ -168,6 +166,7 @@ test "nestest" {
     var bus = Bus.init(&rom);
 
     var cpu = CPU.init(&bus);
+    cpu.debug_trace = true;
     cpu.reset();
 
     // according to documentation, to run this rom in automation mode,
@@ -189,4 +188,7 @@ test "nestest" {
     const result_lo: u8 = bus.read8(lo);
 
     std.debug.print("hi: {X}, lo: {X}\n", .{ result_hi, result_lo });
+
+    // also there is correct output
+    // http://www.qmtpro.com/~nes/misc/nestest.log
 }
