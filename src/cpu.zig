@@ -122,7 +122,7 @@ pub const CPU = struct {
 
     // returns address for the next operand using addressing mode,
     // some instuctions have few modes for the same opcode
-    fn getOperandAddress(self: *CPU, mode: AddressingMode) u16 {
+    pub fn getOperandAddress(self: *CPU, mode: AddressingMode) u16 {
         var address: u16 = undefined;
 
         switch (mode) {

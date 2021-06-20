@@ -176,7 +176,7 @@ test "nestest" {
     std.debug.print("\n", .{});
     var cycles: u8 = cpu.cycle();
 
-    var i: u16 = 10000;
+    var i: u16 = 25;
     while (i > 0) {
         cycles = cpu.cycle();
         i = i - 1;
