@@ -380,12 +380,12 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0xC1, Opcode.init("CMP", AddressingMode.IndirectX, 2, 6)) catch unreachable;
     opcodes.put(0xD1, Opcode.init("CMP", AddressingMode.IndirectY, 2, 5)) catch unreachable;
 
-    // CPX: Compare Memory and Index X
+    // CPX: Compare Memory and Register X
     opcodes.put(0xE0, Opcode.init("CPX", AddressingMode.Immediate, 2, 2)) catch unreachable;
     opcodes.put(0xE4, Opcode.init("CPX", AddressingMode.ZeroPage, 2, 3)) catch unreachable;
     opcodes.put(0xEC, Opcode.init("CPX", AddressingMode.Absolute, 3, 4)) catch unreachable;
 
-    // CPY: Compare Memory and Index Y
+    // CPY: Compare Memory and Register Y
     opcodes.put(0xC0, Opcode.init("CPY", AddressingMode.Immediate, 2, 2)) catch unreachable;
     opcodes.put(0xC4, Opcode.init("CPY", AddressingMode.ZeroPage, 2, 3)) catch unreachable;
     opcodes.put(0xCC, Opcode.init("CPY", AddressingMode.Absolute, 3, 4)) catch unreachable;
@@ -396,10 +396,10 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0xCE, Opcode.init("DEC", AddressingMode.Absolute, 3, 6)) catch unreachable;
     opcodes.put(0xDE, Opcode.init("DEC", AddressingMode.AbsoluteX, 3, 7)) catch unreachable;
 
-    // DEX: Decrement Index X by One
+    // DEX: Decrement Register X by One
     opcodes.put(0xCA, Opcode.init("DEX", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // DEY: Decrement Index Y by One
+    // DEY: Decrement Register Y by One
     opcodes.put(0x88, Opcode.init("DEY", AddressingMode.Implied, 1, 2)) catch unreachable;
 
     // EOR: Exclusive-OR Memory with Accumulator
@@ -418,10 +418,10 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0xEE, Opcode.init("INC", AddressingMode.Absolute, 3, 6)) catch unreachable;
     opcodes.put(0xFE, Opcode.init("INC", AddressingMode.AbsoluteX, 3, 7)) catch unreachable;
 
-    // INX: Increment Index X by One
+    // INX: Increment Register X by One
     opcodes.put(0xE8, Opcode.init("INX", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // INY: Increment Index Y by One
+    // INY: Increment Register Y by One
     opcodes.put(0xC8, Opcode.init("INY", AddressingMode.Implied, 1, 2)) catch unreachable;
 
     // JMP: Jump to New Location
@@ -441,14 +441,14 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0xA1, Opcode.init("LDA", AddressingMode.IndirectX, 2, 6)) catch unreachable;
     opcodes.put(0xB1, Opcode.init("LDA", AddressingMode.IndirectY, 2, 5)) catch unreachable;
 
-    // LDX: Load Index X with Memory
+    // LDX: Load Register X with Memory
     opcodes.put(0xA2, Opcode.init("LDX", AddressingMode.Immediate, 2, 2)) catch unreachable;
     opcodes.put(0xA6, Opcode.init("LDX", AddressingMode.ZeroPage, 2, 3)) catch unreachable;
     opcodes.put(0xB6, Opcode.init("LDX", AddressingMode.ZeroPageY, 2, 4)) catch unreachable;
     opcodes.put(0xAE, Opcode.init("LDX", AddressingMode.Absolute, 3, 4)) catch unreachable;
     opcodes.put(0xBE, Opcode.init("LDX", AddressingMode.AbsoluteY, 3, 4)) catch unreachable;
 
-    // LDY: Load Index Y with Memory
+    // LDY: Load Register Y with Memory
     opcodes.put(0xA0, Opcode.init("LDY", AddressingMode.Immediate, 2, 2)) catch unreachable;
     opcodes.put(0xA4, Opcode.init("LDY", AddressingMode.ZeroPage, 2, 3)) catch unreachable;
     opcodes.put(0xB4, Opcode.init("LDY", AddressingMode.ZeroPageX, 2, 4)) catch unreachable;
@@ -535,32 +535,32 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0x81, Opcode.init("STA", AddressingMode.IndirectX, 2, 6)) catch unreachable;
     opcodes.put(0x91, Opcode.init("STA", AddressingMode.IndirectY, 2, 6)) catch unreachable;
 
-    // STX: Store Index X in Memory
+    // STX: Store Register X in Memory
     opcodes.put(0x86, Opcode.init("STX", AddressingMode.ZeroPage, 2, 3)) catch unreachable;
     opcodes.put(0x96, Opcode.init("STX", AddressingMode.ZeroPageY, 2, 4)) catch unreachable;
     opcodes.put(0x8E, Opcode.init("STX", AddressingMode.Absolute, 3, 4)) catch unreachable;
 
-    // STY: Store Index Y in Memory
+    // STY: Store Register Y in Memory
     opcodes.put(0x84, Opcode.init("STY", AddressingMode.ZeroPage, 2, 3)) catch unreachable;
     opcodes.put(0x94, Opcode.init("STY", AddressingMode.ZeroPageX, 2, 4)) catch unreachable;
     opcodes.put(0x8C, Opcode.init("STY", AddressingMode.Absolute, 3, 4)) catch unreachable;
 
-    // TAX: Transfer Accumulator to Index X
+    // TAX: Transfer Accumulator to Register X
     opcodes.put(0xAA, Opcode.init("TAX", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // TAY: Transfer Accumulator to Index Y
+    // TAY: Transfer Accumulator to Register Y
     opcodes.put(0xA8, Opcode.init("TAY", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // TSX: Transfer Stack Pointer to Index X
+    // TSX: Transfer Stack Pointer to Register X
     opcodes.put(0xBA, Opcode.init("TSX", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // TXA: Transfer Index X to Accumulator
+    // TXA: Transfer Register X to Accumulator
     opcodes.put(0x8A, Opcode.init("TXA", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // TXS: Transfer Index X to Stack Register
+    // TXS: Transfer Register X to Stack Register
     opcodes.put(0x9A, Opcode.init("TXS", AddressingMode.Implied, 1, 2)) catch unreachable;
 
-    // TYA: Transfer Index Y to Accumulator
+    // TYA: Transfer Register Y to Accumulator
     opcodes.put(0x98, Opcode.init("TYA", AddressingMode.Implied, 1, 2)) catch unreachable;
 
     // unofficial opcodes

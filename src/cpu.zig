@@ -45,10 +45,6 @@ pub const CPU = struct {
         return cpu;
     }
 
-    pub fn foo() void {
-        const a: u8 = 0;
-    }
-
     pub fn reset(self: *CPU) void {
         self.register_a = 0;
         self.register_x = 0;

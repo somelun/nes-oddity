@@ -157,7 +157,7 @@ fn readScreenState(cpu: *CPU, buffer: []u24) void {
     }
 }
 
-test "nestest" {
+test "CPU test with nestest.nes rom" {
     // nestes is rom from this place https://wiki.nesdev.com/w/index.php/Emulator_tests
     // more information: https://www.qmtpro.com/~nes/misc/nestest.txt
     var rom = try Rom.init("roms/nestest.nes");
@@ -176,7 +176,7 @@ test "nestest" {
     std.debug.print("\n", .{});
     var cycles: u8 = cpu.cycle();
 
-    var i: u16 = 25;
+    var i: u16 = 10;
     while (i > 0) {
         cycles = cpu.cycle();
         i = i - 1;
@@ -187,7 +187,7 @@ test "nestest" {
     const result_hi: u8 = bus.read8(hi);
     const result_lo: u8 = bus.read8(lo);
 
-    std.debug.print("hi: {X}, lo: {X}\n", .{ result_hi, result_lo });
+    // std.debug.print("hi: {X}, lo: {X}\n", .{ result_hi, result_lo });
 
     // also there is correct output
     // http://www.qmtpro.com/~nes/misc/nestest.log
