@@ -26,7 +26,7 @@ pub const CPU = struct {
     register_a: u8 = 0x00,
     register_x: u8 = 0x00,
     register_y: u8 = 0x00,
-    status: u8 = 0x00,
+    status: u8 = 0x24, //set D and B to 1
     program_counter: u16 = 0x0000,
     stack_pointer: u8 = 0xFD,
 
@@ -48,7 +48,7 @@ pub const CPU = struct {
     pub fn reset(self: *CPU) void {
         self.register_a = 0;
         self.register_x = 0;
-        self.status = 0;
+        self.status = 0x24; //set D and B to 1
 
         self.program_counter = self.bus.read16(PC_ADDRESS);
     }
@@ -146,7 +146,6 @@ pub const CPU = struct {
 
             AddressingMode.Relative => {
                 var offset: u8 = self.bus.read8(self.program_counter);
-
                 address = self.program_counter +% offset +% 1;
 
                 // if the offset is negative
@@ -823,11 +822,16 @@ pub const CPU = struct {
     }
 
     fn _php(self: *CPU) void {
-        self.pushToStack(self.status);
+        // the reason of why we need to make a copy and set B and U flags is here:
+        // https://wiki.nesdev.com/w/index.php?title=Status_flags
+        var status: u8 = self.status;
+        status |= (1 << 4) | (1 << 5);
+        self.pushToStack(status);
     }
 
     fn _pla(self: *CPU) void {
         self.register_a = self.popFromStack();
+        self.updateZeroAndNegativeFlag(self.register_a);
     }
 
     fn _plp(self: *CPU) void {

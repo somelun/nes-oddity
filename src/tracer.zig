@@ -33,7 +33,10 @@ pub fn trace(cpu: *CPU) void {
     var mem_lo: u8 = 0;
     var stored_value: u8 = 0;
     switch (opcode.?.addressing_mode) {
-        AddressingMode.Immediate => {},
+        // AddressingMode.Immediate => {},
+        AddressingMode.Immediate, AddressingMode.Relative => {
+            mem_address = cpu.bus.read8(begin + 1);
+        },
         else => {
             mem_address = cpu.getOperandAddress(opcode.?.addressing_mode);
             stored_value = cpu.bus.read8(mem_address);
@@ -64,7 +67,7 @@ pub fn trace(cpu: *CPU) void {
 
                 AddressingMode.ZeroPageY => fmt.bufPrint(&buffer, "${X:0>2},Y @ {X:0>2} = {X:0>2}", .{ address, mem_address, stored_value }) catch unreachable,
 
-                AddressingMode.Relative => fmt.bufPrint(&buffer, "${X:0>4}", .{(begin + 2) +% address}) catch unreachable,
+                AddressingMode.Relative, AddressingMode.Indirect, AddressingMode.Absolute => fmt.bufPrint(&buffer, "${X:0>4}", .{(begin + 2) +% address}) catch unreachable,
 
                 AddressingMode.IndirectX => fmt.bufPrint(&buffer, "(${X:0>2},X) @ {X:0>2} = {X:0>4} = {X:0>2}", .{ address, address +% cpu.register_x, mem_address, stored_value }) catch unreachable,
 
@@ -118,7 +121,7 @@ pub fn trace(cpu: *CPU) void {
     if (opcode.?.length == 1) {
         stdout.print("       ", .{}) catch unreachable;
     } else if (opcode.?.length == 2) {
-        stdout.print("{X:0>2}     ", .{mem_lo}) catch unreachable;
+        stdout.print("{X:0>2}     ", .{mem_address}) catch unreachable;
     } else if (opcode.?.length == 3) {
         stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable;
     }
@@ -130,5 +133,5 @@ pub fn trace(cpu: *CPU) void {
     while (i > 0) : (i -= 1) {
         stdout.print(" ", .{}) catch unreachable;
     }
-    stdout.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2}\n", .{ cpu.register_a, cpu.register_x, cpu.register_y }) catch unreachable;
+    stdout.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2} P:{X:0>2} SP:{X:0>2}\n", .{ cpu.register_a, cpu.register_x, cpu.register_y, cpu.status, cpu.stack_pointer }) catch unreachable;
 }

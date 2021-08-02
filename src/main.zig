@@ -166,6 +166,7 @@ test "CPU test with nestest.nes rom" {
     var bus = Bus.init(&rom);
 
     var cpu = CPU.init(&bus);
+    std.debug.print("cpu status = {X}\n", .{cpu.status});
     cpu.debug_trace = true;
     cpu.reset();
 
@@ -176,7 +177,7 @@ test "CPU test with nestest.nes rom" {
     std.debug.print("\n", .{});
     var cycles: u8 = cpu.cycle();
 
-    var i: u16 = 10;
+    var i: u16 = 150;
     while (i > 0) {
         cycles = cpu.cycle();
         i = i - 1;

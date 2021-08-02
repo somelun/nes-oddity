@@ -353,7 +353,7 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0x00, Opcode.init("BRK", AddressingMode.Implied, 1, 7)) catch unreachable;
 
     // BVC: Branch on Overflow Clear
-    opcodes.put(0x50, Opcode.init("BPL", AddressingMode.Relative, 2, 2)) catch unreachable;
+    opcodes.put(0x50, Opcode.init("BVC", AddressingMode.Relative, 2, 2)) catch unreachable;
 
     // BVS: Branch on Overflow Set
     opcodes.put(0x70, Opcode.init("BVS", AddressingMode.Relative, 2, 2)) catch unreachable;
