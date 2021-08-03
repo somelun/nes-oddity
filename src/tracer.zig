@@ -11,7 +11,7 @@ const fmt = @import("std").fmt;
 
 var cycles: u32 = 7;
 
-var buffer = [_]u8{undefined} ** 16;
+var buffer = [_]u8{undefined} ** 32;
 
 pub fn trace(cpu: *CPU) void {
     const value: u8 = cpu.bus.read8(cpu.program_counter);
@@ -33,7 +33,6 @@ pub fn trace(cpu: *CPU) void {
     var mem_lo: u8 = 0;
     var stored_value: u8 = 0;
     switch (opcode.?.addressing_mode) {
-        // AddressingMode.Immediate => {},
         AddressingMode.Immediate, AddressingMode.Relative => {
             mem_address = cpu.bus.read8(begin + 1);
         },
@@ -127,7 +126,13 @@ pub fn trace(cpu: *CPU) void {
     if (opcode.?.length == 1) {
         stdout.print("       ", .{}) catch unreachable;
     } else if (opcode.?.length == 2) {
-        stdout.print("{X:0>2}     ", .{mem_address}) catch unreachable;
+        // TODO: ~fuuuuuuu what is going on here
+        if (value == 0xA1 or value == 0x81 or value == 0x01 or value == 0x21 or value == 0x41 or value == 0x61 or value == 0xC1 or value == 0xE1) {
+            const address: u8 = cpu.bus.read8(begin + 1);
+            stdout.print("{X:0>2}     ", .{address}) catch unreachable;
+        } else {
+            stdout.print("{X:0>2}     ", .{mem_address}) catch unreachable;
+        }
     } else if (opcode.?.length == 3) {
         stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable;
     }

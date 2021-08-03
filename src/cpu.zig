@@ -838,22 +838,6 @@ pub const CPU = struct {
     }
 
     fn _rol(self: *CPU, mode: AddressingMode) void {
-        // const address: u16 = self.getOperandAddress(mode);
-        // var fetched: u8 = self.bus.read8(address);
-        //
-        // const old_carry_flag = self.getFlag(StatusFlag.C);
-        //
-        // self.setFlag(StatusFlag.C, (fetched << 7) == 1);
-        // fetched <<= 1;
-        // fetched |= (old_carry_flag & 1);
-        //
-        // self.updateZeroAndNegativeFlag(fetched);
-        //
-        // if (mode == AddressingMode.Accumulator) {
-        //     self.register_a = fetched;
-        // } else {
-        //     self.bus.write8(address, fetched);
-        // }
         if (mode == AddressingMode.Accumulator) {
             var fetched: u8 = self.register_a;
             const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
