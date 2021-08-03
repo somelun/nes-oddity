@@ -535,7 +535,7 @@ pub const CPU = struct {
         }
     }
 
-    fn getFlag(self: *CPU, flag: StatusFlag) u8 {
+    fn getFlag(self: *CPU, flag: StatusFlag) u1 {
         const number = @enumToInt(flag);
         return if (self.status & number > 0) 1 else 0;
     }
@@ -838,40 +838,64 @@ pub const CPU = struct {
     }
 
     fn _rol(self: *CPU, mode: AddressingMode) void {
-        const address: u16 = self.getOperandAddress(mode);
-        var fetched: u8 = self.bus.read8(address);
-
-        const old_carry_flag = self.getFlag(StatusFlag.C);
-
-        self.setFlag(StatusFlag.C, (fetched << 7) == 1);
-        fetched <<= 1;
-        fetched |= (old_carry_flag & 1);
-
-        self.updateZeroAndNegativeFlag(fetched);
-
+        // const address: u16 = self.getOperandAddress(mode);
+        // var fetched: u8 = self.bus.read8(address);
+        //
+        // const old_carry_flag = self.getFlag(StatusFlag.C);
+        //
+        // self.setFlag(StatusFlag.C, (fetched << 7) == 1);
+        // fetched <<= 1;
+        // fetched |= (old_carry_flag & 1);
+        //
+        // self.updateZeroAndNegativeFlag(fetched);
+        //
+        // if (mode == AddressingMode.Accumulator) {
+        //     self.register_a = fetched;
+        // } else {
+        //     self.bus.write8(address, fetched);
+        // }
         if (mode == AddressingMode.Accumulator) {
+            var fetched: u8 = self.register_a;
+            const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
+
+            if (fetched >> 7 == 1) {
+                self.setFlag(StatusFlag.C, true);
+            } else {
+                self.setFlag(StatusFlag.C, false);
+            }
+
+            fetched <<= 1;
+
+            if (old_carry_flag == 1) {
+                fetched |= 1;
+            }
             self.register_a = fetched;
+            self.updateZeroAndNegativeFlag(fetched);
         } else {
-            self.bus.write8(address, fetched);
+            //TODO:
         }
     }
 
     fn _ror(self: *CPU, mode: AddressingMode) void {
-        const address: u16 = self.getOperandAddress(mode);
-        var fetched: u8 = self.bus.read8(address);
-
-        const old_carry_flag = self.getFlag(StatusFlag.C);
-
-        self.setFlag(StatusFlag.C, (fetched & 0x01) == 1);
-        fetched >>= 1;
-        fetched |= ((old_carry_flag & 1) << 7);
-
-        self.updateZeroAndNegativeFlag(fetched);
-
         if (mode == AddressingMode.Accumulator) {
+            var fetched: u8 = self.register_a;
+            const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
+
+            if (fetched & 1 == 1) {
+                self.setFlag(StatusFlag.C, true);
+            } else {
+                self.setFlag(StatusFlag.C, false);
+            }
+
+            fetched >>= 1;
+
+            if (old_carry_flag == 1) {
+                fetched |= 0b10000000;
+            }
             self.register_a = fetched;
+            self.updateZeroAndNegativeFlag(fetched);
         } else {
-            self.bus.write8(address, fetched);
+            //TODO:
         }
     }
 
