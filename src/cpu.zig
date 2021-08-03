@@ -501,6 +501,13 @@ pub const CPU = struct {
         return self.bus.read8(0x0100 + @intCast(u16, self.stack_pointer));
     }
 
+    pub fn readFromStack(self: *CPU) u8 {
+        self.incrementStackPointer();
+        const t: u8 = self.bus.read8(0x0100 + @intCast(u16, self.stack_pointer));
+        self.decrementStackPointer();
+        return t;
+    }
+
     fn incrementStackPointer(self: *CPU) void {
         self.stack_pointer += 1;
         self.stack_pointer &= 0xFF;
@@ -753,10 +760,10 @@ pub const CPU = struct {
     fn _jsr(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
 
-        const lo: u8 = @intCast(u8, ((self.program_counter + 2) >> 8) & 0xFF);
-        const hi: u8 = @intCast(u8, (self.program_counter + 2) & 0xFF);
-        self.pushToStack(lo);
+        const hi: u8 = @intCast(u8, ((self.program_counter + 1) >> 8) & 0xFF);
+        const lo: u8 = @intCast(u8, (self.program_counter + 1) & 0xFF);
         self.pushToStack(hi);
+        self.pushToStack(lo);
 
         self.program_counter = address;
     }
@@ -871,19 +878,20 @@ pub const CPU = struct {
     fn _rti(self: *CPU) void {
         self.status = self.popFromStack();
 
-        // TODO: this is just a copy-paste from the internet,
-        // tests required
-        const hi: u8 = self.popFromStack();
         const lo: u8 = self.popFromStack();
+        const hi: u8 = self.popFromStack();
 
-        self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
+        self.setFlag(StatusFlag.B, false);
+        self.setFlag(StatusFlag.U, true);
+
+        self.program_counter = (@intCast(u16, hi) << 8) | (@intCast(u16, lo));
     }
 
     fn _rts(self: *CPU) void {
-        const hi: u8 = self.popFromStack();
         const lo: u8 = self.popFromStack();
+        const hi: u8 = self.popFromStack();
 
-        self.program_counter = @intCast(u16, hi) | (@intCast(u16, lo) << 8);
+        self.program_counter = ((@intCast(u16, hi) << 8) | (@intCast(u16, lo))) + 1;
     }
 
     fn _sbc(self: *CPU, mode: AddressingMode) void {

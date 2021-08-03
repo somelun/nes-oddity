@@ -139,5 +139,5 @@ pub fn trace(cpu: *CPU) void {
     while (i > 0) : (i -= 1) {
         stdout.print(" ", .{}) catch unreachable;
     }
-    stdout.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2} P:{X:0>2} SP:{X:0>2}\n", .{ cpu.register_a, cpu.register_x, cpu.register_y, cpu.status, cpu.stack_pointer }) catch unreachable;
+    stdout.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2} P:{X:0>2} SP:{X:0>2} {X:0>2}\n", .{ cpu.register_a, cpu.register_x, cpu.register_y, cpu.status, cpu.stack_pointer, cpu.readFromStack() }) catch unreachable;
 }
