@@ -856,7 +856,23 @@ pub const CPU = struct {
             self.register_a = fetched;
             self.updateZeroAndNegativeFlag(fetched);
         } else {
-            //TODO:
+            const address: u16 = self.getOperandAddress(mode);
+            var fetched: u8 = self.bus.read8(address);
+            const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
+
+            if (fetched >> 7 == 1) {
+                self.setFlag(StatusFlag.C, true);
+            } else {
+                self.setFlag(StatusFlag.C, false);
+            }
+
+            fetched <<= 1;
+
+            if (old_carry_flag == 1) {
+                fetched |= 1;
+            }
+            self.bus.write8(address, fetched);
+            self.updateZeroAndNegativeFlag(fetched);
         }
     }
 
@@ -879,7 +895,23 @@ pub const CPU = struct {
             self.register_a = fetched;
             self.updateZeroAndNegativeFlag(fetched);
         } else {
-            //TODO:
+            const address: u16 = self.getOperandAddress(mode);
+            var fetched: u8 = self.bus.read8(address);
+            const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
+
+            if (fetched & 1 == 1) {
+                self.setFlag(StatusFlag.C, true);
+            } else {
+                self.setFlag(StatusFlag.C, false);
+            }
+
+            fetched >>= 1;
+
+            if (old_carry_flag == 1) {
+                fetched |= 0b10000000;
+            }
+            self.bus.write8(address, fetched);
+            self.updateZeroAndNegativeFlag(fetched);
         }
     }
 

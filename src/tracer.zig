@@ -46,6 +46,8 @@ pub fn trace(cpu: *CPU) void {
         },
     }
 
+    var address_hi: u8 = 0;
+    var address_lo: u8 = 0;
     const tmp: []const u8 = switch (opcode.?.length) {
         1 => block: {
             const tmp: []const u8 = switch (value) {
@@ -77,15 +79,15 @@ pub fn trace(cpu: *CPU) void {
             break :block tmp;
         },
         3 => block: {
-            const address_lo: u8 = cpu.bus.read8(begin + 1);
-            const address_hi: u8 = cpu.bus.read8(begin + 2);
+            address_lo = cpu.bus.read8(begin + 1);
+            address_hi = cpu.bus.read8(begin + 2);
 
-            const address: u8 = cpu.bus.read8(begin + 1);
+            const address: u16 = cpu.bus.read16(begin + 1);
 
             const tmp: []const u8 = switch (opcode.?.addressing_mode) {
                 AddressingMode.Absolute => block3: {
                     const tmp1: []const u8 = switch (value) {
-                        0x8E, 0xAE, 0xAD, 0x8D => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
+                        0x8E, 0xAE, 0xAD, 0x8D, 0xAC, 0x2C, 0x8C, 0x0D, 0x2D, 0x4D, 0x6D, 0xCD, 0xED, 0xEC, 0xCC, 0x4E, 0x0E, 0x2E, 0x6E, 0xEE, 0xCE => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
                         else => fmt.bufPrint(&buffer, "${X:0>4}", .{mem_address}) catch unreachable,
                     };
                     break :block3 tmp1;
@@ -103,10 +105,11 @@ pub fn trace(cpu: *CPU) void {
                             const lo: u16 = cpu.bus.read8(address);
                             const hi: u16 = cpu.bus.read8(address & 0x00FF);
                             jmp_address = (hi << 8) | (lo);
+                            std.debug.print("tak tak: {X:0>4} {X:0>4}\n", .{ lo, hi });
                         } else {
-                            jmp_address = cpu.bus.read16(address);
+                            jmp_address = @as(u16, mem_hi) << 8 | (mem_lo);
                         }
-                        break :block2 fmt.bufPrint(&buffer, "${X:0>4} = {X:0>4}", .{ address, jmp_address }) catch unreachable;
+                        break :block2 fmt.bufPrint(&buffer, "(${X:0>4}) = {X:0>4}", .{ address, jmp_address }) catch unreachable;
                     } else {
                         break :block2 fmt.bufPrint(&buffer, "${X:0>4}", .{address}) catch unreachable;
                     }
@@ -127,14 +130,18 @@ pub fn trace(cpu: *CPU) void {
         stdout.print("       ", .{}) catch unreachable;
     } else if (opcode.?.length == 2) {
         // TODO: ~fuuuuuuu what is going on here
-        if (value == 0xA1 or value == 0x81 or value == 0x01 or value == 0x21 or value == 0x41 or value == 0x61 or value == 0xC1 or value == 0xE1) {
-            const address: u8 = cpu.bus.read8(begin + 1);
-            stdout.print("{X:0>2}     ", .{address}) catch unreachable;
-        } else {
-            stdout.print("{X:0>2}     ", .{mem_address}) catch unreachable;
+        switch (value) {
+            0xA1, 0x81, 0x01, 0x21, 0x41, 0x61, 0xC1, 0xE1, 0xB1, 0x11, 0xD1, 0x51, 0x71, 0xF1, 0x31, 0x91 => {
+                const address: u8 = cpu.bus.read8(begin + 1);
+                stdout.print("{X:0>2}     ", .{address}) catch unreachable;
+            },
+            else => stdout.print("{X:0>2}     ", .{mem_address}) catch unreachable,
         }
     } else if (opcode.?.length == 3) {
-        stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable;
+        switch (value) {
+            0x6C => stdout.print("{X:0>2} {X:0>2}  ", .{ address_lo, address_hi }) catch unreachable,
+            else => stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable,
+        }
     }
 
     // I think there is a bug, thats why I can't concatenate tmp normal way

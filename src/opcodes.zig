@@ -319,6 +319,7 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0x3D, Opcode.init("AND", AddressingMode.AbsoluteX, 3, 4)) catch unreachable;
     opcodes.put(0x39, Opcode.init("AND", AddressingMode.AbsoluteY, 2, 2)) catch unreachable;
     opcodes.put(0x21, Opcode.init("AND", AddressingMode.IndirectX, 2, 6)) catch unreachable;
+    opcodes.put(0x31, Opcode.init("AND", AddressingMode.IndirectY, 2, 5)) catch unreachable;
 
     // ASL: Shift Left One Bit (Memory or Accumulator)
     opcodes.put(0x0A, Opcode.init("ASL", AddressingMode.Accumulator, 1, 2)) catch unreachable;
