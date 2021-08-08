@@ -143,7 +143,7 @@ pub fn trace(cpu: *CPU) void {
         }
     } else if (opcode.?.length == 3) {
         switch (value) {
-            0x6C, 0xB9, 0xBC, 0x1D, 0x3D, 0x5D, 0x7D => stdout.print("{X:0>2} {X:0>2}  ", .{ address_lo, address_hi }) catch unreachable,
+            0x6C, 0xB9, 0xBC, 0x1D, 0x3D, 0x5D, 0x7D, 0xDD, 0xFD, 0xBD, 0x9D, 0x5E, 0x1E, 0x7E, 0x3E, 0xFE, 0xDE, 0xBE => stdout.print("{X:0>2} {X:0>2}  ", .{ address_lo, address_hi }) catch unreachable,
             else => stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable,
         }
     }
