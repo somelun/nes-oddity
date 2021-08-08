@@ -135,7 +135,7 @@ pub fn trace(cpu: *CPU) void {
         stdout.print("       ", .{}) catch unreachable;
     } else if (opcode.?.length == 2) {
         switch (opcode.?.addressing_mode) {
-            AddressingMode.IndirectX, AddressingMode.IndirectY => {
+            AddressingMode.IndirectX, AddressingMode.IndirectY, AddressingMode.ZeroPageX, AddressingMode.ZeroPageY => {
                 const address: u8 = cpu.bus.read8(begin_pc + 1);
                 stdout.print("{X:0>2}     ", .{address}) catch unreachable;
             },
@@ -143,7 +143,7 @@ pub fn trace(cpu: *CPU) void {
         }
     } else if (opcode.?.length == 3) {
         switch (value) {
-            0x6C, 0xB9 => stdout.print("{X:0>2} {X:0>2}  ", .{ address_lo, address_hi }) catch unreachable,
+            0x6C, 0xB9, 0xBC, 0x1D, 0x3D, 0x5D, 0x7D => stdout.print("{X:0>2} {X:0>2}  ", .{ address_lo, address_hi }) catch unreachable,
             else => stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable,
         }
     }
