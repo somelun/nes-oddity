@@ -317,7 +317,7 @@ pub fn generateOpcodes() AutoHashMap(u8, Opcode) {
     opcodes.put(0x35, Opcode.init("AND", AddressingMode.ZeroPageX, 2, 4)) catch unreachable;
     opcodes.put(0x2D, Opcode.init("AND", AddressingMode.Absolute, 3, 4)) catch unreachable;
     opcodes.put(0x3D, Opcode.init("AND", AddressingMode.AbsoluteX, 3, 4)) catch unreachable;
-    opcodes.put(0x39, Opcode.init("AND", AddressingMode.AbsoluteY, 2, 2)) catch unreachable;
+    opcodes.put(0x39, Opcode.init("AND", AddressingMode.AbsoluteY, 3, 2)) catch unreachable;
     opcodes.put(0x21, Opcode.init("AND", AddressingMode.IndirectX, 2, 6)) catch unreachable;
     opcodes.put(0x31, Opcode.init("AND", AddressingMode.IndirectY, 2, 5)) catch unreachable;
 

@@ -70,6 +70,7 @@ pub const CPU = struct {
         if (self.debug_trace) {
             Tracer.trace(self);
         }
+
         // store initial PC value for the later incrementation if it not
         // changed (for example after branch instruction)
         const initial_pc: u16 = self.program_counter;
@@ -100,21 +101,21 @@ pub const CPU = struct {
     }
 
     // used to tests
-    fn loop(self: *CPU) void {
-        while (self.program_counter < 0xFFFC) { //TODO: remove magic number
-            const value: u8 = self.bus.read8(self.program_counter);
-            self.program_counter += 1;
-
-            const opcode: ?Opcode = self.opcodes.get(value);
-            if (opcode == null) {
-                continue;
-            }
-
-            const addressing_mode: AddressingMode = opcode.?.addressing_mode;
-
-            self.handleOpcode(value, addressing_mode);
-        }
-    }
+    // fn loop(self: *CPU) void {
+    //     while (self.program_counter < 0xFFFC) { //TODO: remove magic number
+    //         const value: u8 = self.bus.read8(self.program_counter);
+    //         self.program_counter += 1;
+    //
+    //         const opcode: ?Opcode = self.opcodes.get(value);
+    //         if (opcode == null) {
+    //             continue;
+    //         }
+    //
+    //         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
+    //
+    //         self.handleOpcode(value, addressing_mode);
+    //     }
+    // }
 
     // returns address for the next operand using addressing mode,
     // some instuctions have few modes for the same opcode
