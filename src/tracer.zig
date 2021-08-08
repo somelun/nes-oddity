@@ -2,6 +2,7 @@ const CPU = @import("cpu.zig").CPU;
 const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
+const opcodes = @import("cpu.zig").opcodes;
 
 const std = @import("std");
 const fmt = @import("std").fmt;
@@ -15,9 +16,9 @@ var buffer = [_]u8{undefined} ** 32;
 
 pub fn trace(cpu: *CPU) void {
     const value: u8 = cpu.bus.read8(cpu.program_counter);
-    const opcode: ?Opcode = cpu.opcodes.get(value);
+    const opcode: ?Opcode = opcodes[value];
 
-    if (opcode == null) {
+    if (opcode.?.length < 1) {
         // we print error in CPU, just return here
         return;
     }

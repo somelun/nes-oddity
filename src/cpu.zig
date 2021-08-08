@@ -11,6 +11,8 @@ const Tracer = @import("tracer.zig");
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
 
+pub const opcodes: [256]Opcode = comptime OpcodesAPI.generateOcpodes();
+
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
     Z = (1 << 1), // zero
@@ -31,15 +33,12 @@ pub const CPU = struct {
     stack_pointer: u8 = 0xFD,
 
     bus: *Bus = undefined,
-    opcodes: AutoHashMap(u8, Opcode),
 
     // if true, debug trace will be printed (used for nestest.rom)
     debug_trace: bool = false,
 
     pub fn init(bus: *Bus) CPU {
-        var cpu = CPU{
-            .opcodes = OpcodesAPI.generateOpcodes(),
-        };
+        var cpu = CPU{};
         cpu.bus = bus;
 
         return cpu;
@@ -82,8 +81,8 @@ pub const CPU = struct {
         self.setFlag(StatusFlag.U, true);
         self.setFlag(StatusFlag.I, true);
 
-        const opcode: ?Opcode = self.opcodes.get(value);
-        if (opcode == null) {
+        const opcode: ?Opcode = opcodes[value];
+        if (opcode.?.length < 1) {
             std.debug.print("Unsupported instruction! {X}\n", .{value});
             return 0;
         }
@@ -99,23 +98,6 @@ pub const CPU = struct {
 
         return opcode.?.length;
     }
-
-    // used to tests
-    // fn loop(self: *CPU) void {
-    //     while (self.program_counter < 0xFFFC) { //TODO: remove magic number
-    //         const value: u8 = self.bus.read8(self.program_counter);
-    //         self.program_counter += 1;
-    //
-    //         const opcode: ?Opcode = self.opcodes.get(value);
-    //         if (opcode == null) {
-    //             continue;
-    //         }
-    //
-    //         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
-    //
-    //         self.handleOpcode(value, addressing_mode);
-    //     }
-    // }
 
     // returns address for the next operand using addressing mode,
     // some instuctions have few modes for the same opcode
