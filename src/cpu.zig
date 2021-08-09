@@ -466,9 +466,14 @@ pub const CPU = struct {
                 self._tya();
             },
 
-            // LAX: Load to X
+            // *LAX: Load to A and X
             0xA7, 0xB7, 0xAF, 0xBF, 0xA3, 0xB3 => {
                 self._lax(addressing_mode);
+            },
+
+            // *SAX
+            0x87, 0x97, 0x83, 0x8F => {
+                self._sax(addressing_mode);
             },
 
             // unknown instruction or already used data
@@ -997,5 +1002,12 @@ pub const CPU = struct {
         self.register_a = data;
         self.register_x = self.register_a;
         self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    fn _sax(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const data: u8 = self.register_a & self.register_x;
+
+        self.bus.write8(address, data);
     }
 };
