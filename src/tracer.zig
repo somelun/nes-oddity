@@ -73,7 +73,15 @@ pub fn trace(cpu: *CPU) void {
 
                 AddressingMode.ZeroPageY => fmt.bufPrint(&buffer, "${X:0>2},Y @ {X:0>2} = {X:0>2}", .{ address, mem_address, stored_value }) catch unreachable,
 
-                AddressingMode.Relative, AddressingMode.Indirect, AddressingMode.Absolute => fmt.bufPrint(&buffer, "${X:0>4}", .{(begin_pc + 2) +% address}) catch unreachable,
+                AddressingMode.Indirect, AddressingMode.Absolute => fmt.bufPrint(&buffer, "${X:0>4}", .{(begin_pc + 2) +% address}) catch unreachable,
+
+                AddressingMode.Relative => blk: {
+                    var offset: u16 = (begin_pc + 2) +% address;
+                    if (address > 0x7F) {
+                        offset -= 0x0100;
+                    }
+                    break :blk fmt.bufPrint(&buffer, "${X:0>4}", .{offset}) catch unreachable;
+                },
 
                 AddressingMode.IndirectX => fmt.bufPrint(&buffer, "(${X:0>2},X) @ {X:0>2} = {X:0>4} = {X:0>2}", .{ address, address +% cpu.register_x, mem_address, stored_value }) catch unreachable,
 
@@ -93,7 +101,7 @@ pub fn trace(cpu: *CPU) void {
                 AddressingMode.Absolute => block3: {
                     // const tmp1: []const u8 = switch (opcode.?.addressing_mode) {
                     const tmp1: []const u8 = switch (value) {
-                        0x8E, 0xAE, 0xAD, 0x8D, 0xAC, 0x2C, 0x8C, 0x0D, 0x2D, 0x4D, 0x6D, 0xCD, 0xED, 0xEC, 0xCC, 0x4E, 0x0E, 0x2E, 0x6E, 0xEE, 0xCE => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
+                        0x8E, 0xAE, 0xAD, 0x8D, 0xAC, 0x2C, 0x8C, 0x0D, 0x2D, 0x4D, 0x6D, 0xCD, 0xED, 0xEC, 0xCC, 0x4E, 0x0E, 0x2E, 0x6E, 0xEE, 0xCE, 0x0C => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
                         // AddressingMode.Absolute => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
                         else => fmt.bufPrint(&buffer, "${X:0>4}", .{mem_address}) catch unreachable,
                     };
@@ -133,20 +141,25 @@ pub fn trace(cpu: *CPU) void {
     stdout.print("{X:0>4}  {X:0>2} ", .{ begin_pc, value }) catch unreachable;
 
     if (opcode.?.length == 1) {
-        stdout.print("       ", .{}) catch unreachable;
+        stdout.print("      ", .{}) catch unreachable;
     } else if (opcode.?.length == 2) {
         switch (opcode.?.addressing_mode) {
             AddressingMode.IndirectX, AddressingMode.IndirectY, AddressingMode.ZeroPageX, AddressingMode.ZeroPageY => {
                 const address: u8 = cpu.bus.read8(begin_pc + 1);
-                stdout.print("{X:0>2}     ", .{address}) catch unreachable;
+                stdout.print("{X:0>2}    ", .{address}) catch unreachable;
             },
-            else => stdout.print("{X:0>2}     ", .{mem_address}) catch unreachable,
+            else => stdout.print("{X:0>2}    ", .{mem_address}) catch unreachable,
         }
     } else if (opcode.?.length == 3) {
         switch (opcode.?.addressing_mode) {
-            AddressingMode.Indirect, AddressingMode.AbsoluteX, AddressingMode.AbsoluteY => stdout.print("{X:0>2} {X:0>2}  ", .{ address_lo, address_hi }) catch unreachable,
-            else => stdout.print("{X:0>2} {X:0>2}  ", .{ mem_lo, mem_hi }) catch unreachable,
+            AddressingMode.Indirect, AddressingMode.AbsoluteX, AddressingMode.AbsoluteY => stdout.print("{X:0>2} {X:0>2} ", .{ address_lo, address_hi }) catch unreachable,
+            else => stdout.print("{X:0>2} {X:0>2} ", .{ mem_lo, mem_hi }) catch unreachable,
         }
+    }
+
+    // hardcoded for unofficial opcodes
+    if (opcode.?.name.len == 3) {
+        stdout.print(" ", .{}) catch unreachable;
     }
 
     // I think there is a bug, thats why I can't concatenate tmp normal way

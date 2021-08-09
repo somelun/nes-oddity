@@ -300,5 +300,39 @@ pub fn generateOcpodes() [256]Opcode {
     // TYA: Transfer Register Y to Accumulator
     opcodes[0x98] = Opcode.init("TYA", AddressingMode.Implied, 1, 2);
 
+    // UNOFFICIAL OPCODES
+    // https://www.nesdev.com/undocumented_opcodes.txt
+
+    // NOP: No Operation
+    opcodes[0x04] = Opcode.init("*NOP", AddressingMode.ZeroPage, 2, 3);
+    opcodes[0x14] = Opcode.init("*NOP", AddressingMode.ZeroPageX, 2, 4);
+    opcodes[0x34] = Opcode.init("*NOP", AddressingMode.ZeroPageX, 2, 4);
+    opcodes[0x44] = Opcode.init("*NOP", AddressingMode.ZeroPage, 2, 3);
+    opcodes[0x54] = Opcode.init("*NOP", AddressingMode.ZeroPageX, 2, 4);
+    opcodes[0x64] = Opcode.init("*NOP", AddressingMode.ZeroPage, 2, 3);
+    opcodes[0x74] = Opcode.init("*NOP", AddressingMode.ZeroPageX, 2, 4);
+    opcodes[0x80] = Opcode.init("*NOP", AddressingMode.Immediate, 2, 2);
+    opcodes[0x82] = Opcode.init("*NOP", AddressingMode.Immediate, 2, 2);
+    opcodes[0x89] = Opcode.init("*NOP", AddressingMode.Immediate, 2, 2);
+    opcodes[0xC2] = Opcode.init("*NOP", AddressingMode.Immediate, 2, 2);
+    opcodes[0xD4] = Opcode.init("*NOP", AddressingMode.ZeroPageX, 2, 4);
+    opcodes[0xE2] = Opcode.init("*NOP", AddressingMode.Immediate, 2, 2);
+    opcodes[0xF4] = Opcode.init("*NOP", AddressingMode.ZeroPageX, 2, 4);
+
+    opcodes[0x0C] = Opcode.init("*NOP", AddressingMode.Absolute, 3, 4);
+    opcodes[0x1C] = Opcode.init("*NOP", AddressingMode.AbsoluteX, 3, 4);
+    opcodes[0x3C] = Opcode.init("*NOP", AddressingMode.AbsoluteX, 3, 4);
+    opcodes[0x5C] = Opcode.init("*NOP", AddressingMode.AbsoluteX, 3, 4);
+    opcodes[0x7C] = Opcode.init("*NOP", AddressingMode.AbsoluteX, 3, 4);
+    opcodes[0xDC] = Opcode.init("*NOP", AddressingMode.AbsoluteX, 3, 4);
+    opcodes[0xFC] = Opcode.init("*NOP", AddressingMode.AbsoluteX, 3, 4);
+
+    opcodes[0x1A] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
+    opcodes[0x3A] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
+    opcodes[0x5A] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
+    opcodes[0x7A] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
+    opcodes[0xDA] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
+    opcodes[0xFA] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
+
     return opcodes;
 }
