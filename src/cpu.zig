@@ -476,6 +476,11 @@ pub const CPU = struct {
                 self._sax(addressing_mode);
             },
 
+            // *SBC
+            0xEB => {
+                self._sbc(addressing_mode);
+            },
+
             // unknown instruction or already used data
             else => {},
         }
