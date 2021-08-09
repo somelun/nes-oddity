@@ -351,7 +351,7 @@ pub const CPU = struct {
                 self._lsr(addressing_mode);
             },
 
-            // NOP: No Operation
+            // NOP and *NOP: No Operation
             0xEA, 0x04, 0x14, 0x34, 0x44, 0x54, 0x64, 0x74, 0x80, 0x82, 0x89, 0xC2, 0xD4, 0xE2, 0xF4, 0x0C, 0x1C, 0x3C, 0x5C, 0x7C, 0xDC, 0xFC, 0x1A, 0x3A, 0x5A, 0x7A, 0xDA, 0xFA => {
                 return;
             },
@@ -464,6 +464,11 @@ pub const CPU = struct {
             // TYA: Transfer Index Y to Accumulator
             0x98 => {
                 self._tya();
+            },
+
+            // LAX: Load to X
+            0xA7, 0xB7, 0xAF, 0xBF, 0xA3, 0xB3 => {
+                self._lax(addressing_mode);
             },
 
             // unknown instruction or already used data
@@ -983,6 +988,14 @@ pub const CPU = struct {
 
     fn _tya(self: *CPU) void {
         self.register_a = self.register_y;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    fn _lax(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const data: u8 = self.bus.read8(address);
+        self.register_a = data;
+        self.register_x = self.register_a;
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 };

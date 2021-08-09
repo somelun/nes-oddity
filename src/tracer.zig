@@ -99,11 +99,9 @@ pub fn trace(cpu: *CPU) void {
 
             const tmp: []const u8 = switch (opcode.?.addressing_mode) {
                 AddressingMode.Absolute => block3: {
-                    // const tmp1: []const u8 = switch (opcode.?.addressing_mode) {
                     const tmp1: []const u8 = switch (value) {
-                        0x8E, 0xAE, 0xAD, 0x8D, 0xAC, 0x2C, 0x8C, 0x0D, 0x2D, 0x4D, 0x6D, 0xCD, 0xED, 0xEC, 0xCC, 0x4E, 0x0E, 0x2E, 0x6E, 0xEE, 0xCE, 0x0C => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
-                        // AddressingMode.Absolute => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
-                        else => fmt.bufPrint(&buffer, "${X:0>4}", .{mem_address}) catch unreachable,
+                        0x20, 0x4C => fmt.bufPrint(&buffer, "${X:0>4}", .{mem_address}) catch unreachable,
+                        else => fmt.bufPrint(&buffer, "${X:0>4} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
                     };
                     break :block3 tmp1;
                 },

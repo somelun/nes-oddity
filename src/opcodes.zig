@@ -334,5 +334,13 @@ pub fn generateOcpodes() [256]Opcode {
     opcodes[0xDA] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
     opcodes[0xFA] = Opcode.init("*NOP", AddressingMode.Implied, 1, 2);
 
+    // LAX: Load to X
+    opcodes[0xA7] = Opcode.init("*LAX", AddressingMode.ZeroPage, 2, 3);
+    opcodes[0xB7] = Opcode.init("*LAX", AddressingMode.ZeroPageY, 2, 4);
+    opcodes[0xAF] = Opcode.init("*LAX", AddressingMode.Absolute, 3, 4);
+    opcodes[0xBF] = Opcode.init("*LAX", AddressingMode.AbsoluteY, 3, 4);
+    opcodes[0xA3] = Opcode.init("*LAX", AddressingMode.IndirectX, 2, 6);
+    opcodes[0xB3] = Opcode.init("*LAX", AddressingMode.IndirectY, 2, 5);
+
     return opcodes;
 }
