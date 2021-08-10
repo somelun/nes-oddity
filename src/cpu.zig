@@ -486,6 +486,11 @@ pub const CPU = struct {
                 self._sbc(addressing_mode);
             },
 
+            // *DCP
+            0xC7, 0xD7, 0xCF, 0xDF, 0xDB, 0xC3, 0xD3 => {
+                self._dcp(addressing_mode);
+            },
+
             // unknown instruction or already used data
             else => {},
         }
@@ -1019,5 +1024,18 @@ pub const CPU = struct {
         const data: u8 = self.register_a & self.register_x;
 
         self.bus.write8(address, data);
+    }
+
+    fn _dcp(self: *CPU, mode: AddressingMode) void {
+        const address: u16 = self.getOperandAddress(mode);
+        const data: u8 = self.bus.read8(address) -% 1;
+
+        self.bus.write8(address, data);
+
+        if (data < self.register_a) {
+            self.setFlag(StatusFlag.C, true);
+        }
+
+        self.updateZeroAndNegativeFlag(self.register_a -% data);
     }
 };
