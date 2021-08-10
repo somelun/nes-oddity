@@ -176,7 +176,7 @@ test "CPU test with nestest.nes rom" {
     std.debug.print("\n", .{});
     var cycles: u8 = cpu.cycle();
 
-    var i: u16 = 7500;
+    var i: u16 = 8000;
     while (i > 0) {
         cycles = cpu.cycle();
         i = i - 1;

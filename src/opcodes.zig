@@ -387,5 +387,14 @@ pub fn generateOcpodes() [256]Opcode {
     opcodes[0x23] = Opcode.init("*RLA", AddressingMode.IndirectX, 2, 8);
     opcodes[0x33] = Opcode.init("*RLA", AddressingMode.IndirectY, 2, 8);
 
+    // *SRE
+    opcodes[0x47] = Opcode.init("*SRE", AddressingMode.ZeroPage, 2, 5);
+    opcodes[0x57] = Opcode.init("*SRE", AddressingMode.ZeroPageX, 2, 6);
+    opcodes[0x4F] = Opcode.init("*SRE", AddressingMode.Absolute, 3, 6);
+    opcodes[0x5F] = Opcode.init("*SRE", AddressingMode.AbsoluteX, 3, 7);
+    opcodes[0x5B] = Opcode.init("*SRE", AddressingMode.AbsoluteY, 3, 7);
+    opcodes[0x43] = Opcode.init("*SRE", AddressingMode.IndirectX, 2, 8);
+    opcodes[0x53] = Opcode.init("*SRE", AddressingMode.IndirectY, 2, 8);
+
     return opcodes;
 }

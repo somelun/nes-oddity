@@ -348,7 +348,7 @@ pub const CPU = struct {
 
             // LSR: Shift One Bit Right (Memory or Accumulator)
             0x4A, 0x46, 0x56, 0x4E, 0x5E => {
-                self._lsr(addressing_mode);
+                _ = self._lsr(addressing_mode);
             },
 
             // NOP: No Operation
@@ -504,6 +504,11 @@ pub const CPU = struct {
             // *RLA
             0x27, 0x37, 0x2F, 0x3F, 0x3B, 0x23, 0x33 => {
                 self._rla(addressing_mode);
+            },
+
+            // *SRE
+            0x47, 0x57, 0x4F, 0x5F, 0x5B, 0x43, 0x53 => {
+                self._sre(addressing_mode);
             },
 
             // unknown instruction or already used data
@@ -824,11 +829,13 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_y);
     }
 
-    fn _lsr(self: *CPU, mode: AddressingMode) void {
+    fn _lsr(self: *CPU, mode: AddressingMode) u8 {
         if (mode == AddressingMode.Accumulator) {
             self.setFlag(StatusFlag.C, (self.register_a & 0x01) == 1);
             self.register_a >>= 1;
             self.updateZeroAndNegativeFlag(self.register_a);
+
+            return 0;
         } else {
             const address: u16 = self.getOperandAddress(mode);
             var fetched: u8 = self.bus.read8(address);
@@ -837,6 +844,8 @@ pub const CPU = struct {
             fetched >>= 1;
             self.updateZeroAndNegativeFlag(fetched);
             self.bus.write8(address, fetched);
+
+            return fetched;
         }
     }
 
@@ -1086,6 +1095,13 @@ pub const CPU = struct {
         const data: u8 = self._rol(mode);
 
         self.register_a = self.register_a & data;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    fn _sre(self: *CPU, mode: AddressingMode) void {
+        const data: u8 = self._lsr(mode);
+
+        self.register_a = self.register_a ^ data;
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 };
