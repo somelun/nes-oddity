@@ -358,7 +358,16 @@ pub fn generateOcpodes() [256]Opcode {
     opcodes[0xDF] = Opcode.init("*DCP", AddressingMode.AbsoluteX, 3, 7);
     opcodes[0xDB] = Opcode.init("*DCP", AddressingMode.AbsoluteY, 3, 7);
     opcodes[0xC3] = Opcode.init("*DCP", AddressingMode.IndirectX, 2, 8);
-    opcodes[0xD3] = Opcode.init("*DCP`", AddressingMode.IndirectY, 2, 8);
+    opcodes[0xD3] = Opcode.init("*DCP", AddressingMode.IndirectY, 2, 8);
+
+    // *ISC
+    opcodes[0xE7] = Opcode.init("*ISB", AddressingMode.ZeroPage, 2, 5);
+    opcodes[0xF7] = Opcode.init("*ISB", AddressingMode.ZeroPageX, 2, 6);
+    opcodes[0xEF] = Opcode.init("*ISB", AddressingMode.Absolute, 3, 6);
+    opcodes[0xFF] = Opcode.init("*ISB", AddressingMode.AbsoluteX, 3, 7);
+    opcodes[0xFB] = Opcode.init("*ISB", AddressingMode.AbsoluteY, 3, 7);
+    opcodes[0xE3] = Opcode.init("*ISB", AddressingMode.IndirectX, 2, 8);
+    opcodes[0xF3] = Opcode.init("*ISB", AddressingMode.IndirectY, 2, 8);
 
     return opcodes;
 }

@@ -308,7 +308,7 @@ pub const CPU = struct {
 
             // INC: Increment Memory by One
             0xE6, 0xF6, 0xEE, 0xFE => {
-                self._inc(addressing_mode);
+                _ = self._inc(addressing_mode);
             },
 
             // INX: Increment Index X by One
@@ -491,6 +491,11 @@ pub const CPU = struct {
                 self._dcp(addressing_mode);
             },
 
+            // *ISB
+            0xE7, 0xF7, 0xEF, 0xFF, 0xFB, 0xE3, 0xF3 => {
+                self._isb(addressing_mode);
+            },
+
             // unknown instruction or already used data
             else => {},
         }
@@ -565,19 +570,26 @@ pub const CPU = struct {
     }
 
     ///////////////////////////////////////////////////////
+    // Helpers
+
+    fn addToRegisterA(self: *CPU, value: u8) void {
+        const result: u16 = @intCast(u16, self.register_a) + value + @intCast(u16, self.getFlag(StatusFlag.C));
+
+        self.setFlag(StatusFlag.C, result > 0xFF);
+        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ value) & (@intCast(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        self.updateZeroAndNegativeFlag(@intCast(u8, result & 0x00FF));
+
+        self.register_a = @intCast(u8, result & 0x00FF);
+    }
+
+    ///////////////////////////////////////////////////////
     // Instructions
 
     fn _adc(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched: u16 = @intCast(u16, self.bus.read8(address));
+        const fetched: u8 = self.bus.read8(address);
 
-        const result: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
-
-        self.setFlag(StatusFlag.C, result > 0xFF);
-        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ result)) & 0x0080 != 0);
-        self.updateZeroAndNegativeFlag(@intCast(u8, result & 0x00FF));
-
-        self.register_a = @intCast(u8, result & 0x00FF);
+        self.addToRegisterA(fetched);
     }
 
     fn _and(self: *CPU, mode: AddressingMode) void {
@@ -742,12 +754,13 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
-    fn _inc(self: *CPU, mode: AddressingMode) void {
+    fn _inc(self: *CPU, mode: AddressingMode) u8 {
         const address: u16 = self.getOperandAddress(mode);
-        const fetched = self.bus.read8(address) +% 1;
+        const fetched: u8 = self.bus.read8(address) +% 1;
 
         self.bus.write8(address, fetched);
         self.updateZeroAndNegativeFlag(fetched);
+        return fetched;
     }
 
     fn _inx(self: *CPU) void {
@@ -1037,5 +1050,10 @@ pub const CPU = struct {
         }
 
         self.updateZeroAndNegativeFlag(self.register_a -% data);
+    }
+
+    fn _isb(self: *CPU, mode: AddressingMode) void {
+        const data: u8 = self._inc(mode);
+        self.addToRegisterA(-%data -% 1);
     }
 };
