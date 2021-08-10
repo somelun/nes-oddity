@@ -388,7 +388,7 @@ pub const CPU = struct {
 
             // ROR: Rotate One Bit Right (Memory or Accumulator)
             0x6A, 0x66, 0x76, 0x6E, 0x7E => {
-                self._ror(addressing_mode);
+                _ = self._ror(addressing_mode);
             },
 
             // RTI: Return from Interrupt
@@ -509,6 +509,11 @@ pub const CPU = struct {
             // *SRE
             0x47, 0x57, 0x4F, 0x5F, 0x5B, 0x43, 0x53 => {
                 self._sre(addressing_mode);
+            },
+
+            // *RRA
+            0x67, 0x77, 0x6F, 0x7F, 0x7B, 0x63, 0x73 => {
+                self._rra(addressing_mode);
             },
 
             // unknown instruction or already used data
@@ -924,7 +929,7 @@ pub const CPU = struct {
         }
     }
 
-    fn _ror(self: *CPU, mode: AddressingMode) void {
+    fn _ror(self: *CPU, mode: AddressingMode) u8 {
         if (mode == AddressingMode.Accumulator) {
             var fetched: u8 = self.register_a;
             const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
@@ -942,6 +947,8 @@ pub const CPU = struct {
             }
             self.register_a = fetched;
             self.updateZeroAndNegativeFlag(fetched);
+
+            return 0;
         } else {
             const address: u16 = self.getOperandAddress(mode);
             var fetched: u8 = self.bus.read8(address);
@@ -960,6 +967,8 @@ pub const CPU = struct {
             }
             self.bus.write8(address, fetched);
             self.updateZeroAndNegativeFlag(fetched);
+
+            return fetched;
         }
     }
 
@@ -1103,5 +1112,11 @@ pub const CPU = struct {
 
         self.register_a = self.register_a ^ data;
         self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    fn _rra(self: *CPU, mode: AddressingMode) void {
+        const data: u8 = self._ror(mode);
+
+        self.addToRegisterA(data);
     }
 };
