@@ -369,5 +369,23 @@ pub fn generateOcpodes() [256]Opcode {
     opcodes[0xE3] = Opcode.init("*ISB", AddressingMode.IndirectX, 2, 8);
     opcodes[0xF3] = Opcode.init("*ISB", AddressingMode.IndirectY, 2, 8);
 
+    // *SLO
+    opcodes[0x07] = Opcode.init("*SLO", AddressingMode.ZeroPage, 2, 5);
+    opcodes[0x17] = Opcode.init("*SLO", AddressingMode.ZeroPageX, 2, 6);
+    opcodes[0x0F] = Opcode.init("*SLO", AddressingMode.Absolute, 3, 6);
+    opcodes[0x1F] = Opcode.init("*SLO", AddressingMode.AbsoluteX, 3, 7);
+    opcodes[0x1B] = Opcode.init("*SLO", AddressingMode.AbsoluteY, 3, 7);
+    opcodes[0x03] = Opcode.init("*SLO", AddressingMode.IndirectX, 2, 8);
+    opcodes[0x13] = Opcode.init("*SLO", AddressingMode.IndirectY, 2, 8);
+
+    // *RLA
+    opcodes[0x27] = Opcode.init("*RLA", AddressingMode.ZeroPage, 2, 5);
+    opcodes[0x37] = Opcode.init("*RLA", AddressingMode.ZeroPageX, 2, 6);
+    opcodes[0x2F] = Opcode.init("*RLA", AddressingMode.Absolute, 3, 6);
+    opcodes[0x3F] = Opcode.init("*RLA", AddressingMode.AbsoluteX, 3, 7);
+    opcodes[0x3B] = Opcode.init("*RLA", AddressingMode.AbsoluteY, 3, 7);
+    opcodes[0x23] = Opcode.init("*RLA", AddressingMode.IndirectX, 2, 8);
+    opcodes[0x33] = Opcode.init("*RLA", AddressingMode.IndirectY, 2, 8);
+
     return opcodes;
 }

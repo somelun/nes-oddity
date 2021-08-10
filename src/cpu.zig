@@ -198,7 +198,7 @@ pub const CPU = struct {
 
             // ASL: Shift Left One Bit (Memory or Accumulator)
             0x0A, 0x06, 0x16, 0x0E, 0x1E => {
-                self._asl(addressing_mode);
+                _ = self._asl(addressing_mode);
             },
 
             // BCC: Branch on Carry Clear
@@ -383,7 +383,7 @@ pub const CPU = struct {
 
             // ROL: Rotate One Bit Left (Memory or Accumulator)
             0x2A, 0x26, 0x36, 0x2E, 0x3E => {
-                self._rol(addressing_mode);
+                _ = self._rol(addressing_mode);
             },
 
             // ROR: Rotate One Bit Right (Memory or Accumulator)
@@ -496,6 +496,16 @@ pub const CPU = struct {
                 self._isb(addressing_mode);
             },
 
+            // *SLO
+            0x07, 0x17, 0x0F, 0x1F, 0x1B, 0x03, 0x13 => {
+                self._slo(addressing_mode);
+            },
+
+            // *RLA
+            0x27, 0x37, 0x2F, 0x3F, 0x3B, 0x23, 0x33 => {
+                self._rla(addressing_mode);
+            },
+
             // unknown instruction or already used data
             else => {},
         }
@@ -599,12 +609,14 @@ pub const CPU = struct {
         self.updateZeroAndNegativeFlag(self.register_a);
     }
 
-    fn _asl(self: *CPU, mode: AddressingMode) void {
+    fn _asl(self: *CPU, mode: AddressingMode) u8 {
         if (mode == AddressingMode.Accumulator) {
             self.setFlag(StatusFlag.C, (self.register_a >> 7) == 1);
             self.register_a <<= 1;
 
             self.updateZeroAndNegativeFlag(self.register_a);
+
+            return 0; // should be unused always
         } else {
             const address: u16 = self.getOperandAddress(mode);
             var fetched: u8 = self.bus.read8(address);
@@ -614,6 +626,8 @@ pub const CPU = struct {
 
             self.updateZeroAndNegativeFlag(fetched);
             self.bus.write8(address, fetched);
+
+            return fetched;
         }
     }
 
@@ -858,7 +872,7 @@ pub const CPU = struct {
         self.setFlag(StatusFlag.U, true);
     }
 
-    fn _rol(self: *CPU, mode: AddressingMode) void {
+    fn _rol(self: *CPU, mode: AddressingMode) u8 {
         if (mode == AddressingMode.Accumulator) {
             var fetched: u8 = self.register_a;
             const old_carry_flag: u1 = self.getFlag(StatusFlag.C);
@@ -876,6 +890,8 @@ pub const CPU = struct {
             }
             self.register_a = fetched;
             self.updateZeroAndNegativeFlag(fetched);
+
+            return 0;
         } else {
             const address: u16 = self.getOperandAddress(mode);
             var fetched: u8 = self.bus.read8(address);
@@ -894,6 +910,8 @@ pub const CPU = struct {
             }
             self.bus.write8(address, fetched);
             self.updateZeroAndNegativeFlag(fetched);
+
+            return fetched;
         }
     }
 
@@ -1055,5 +1073,19 @@ pub const CPU = struct {
     fn _isb(self: *CPU, mode: AddressingMode) void {
         const data: u8 = self._inc(mode);
         self.addToRegisterA(-%data -% 1);
+    }
+
+    fn _slo(self: *CPU, mode: AddressingMode) void {
+        const data: u8 = self._asl(mode);
+
+        self.register_a = self.register_a | data;
+        self.updateZeroAndNegativeFlag(self.register_a);
+    }
+
+    fn _rla(self: *CPU, mode: AddressingMode) void {
+        const data: u8 = self._rol(mode);
+
+        self.register_a = self.register_a & data;
+        self.updateZeroAndNegativeFlag(self.register_a);
     }
 };
