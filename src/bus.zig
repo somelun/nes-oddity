@@ -1,4 +1,4 @@
-// NES Memory Layot
+// NES Memory Layout
 //
 //
 //
@@ -45,6 +45,7 @@ const std = @import("std");
 const mem = std.mem;
 
 const Rom = @import("rom.zig").Rom;
+const PPU = @import("ppu.zig").PPU;
 
 const RAM_BEGIN: u16 = 0x0000;
 const RAM_MIRROR_END: u16 = 0x1FFF;
