@@ -2,7 +2,7 @@
 
 Educational attempt to make NES emulator in Zig programming language.  
 
-Current state - it implememts all the 256 official and unofficial opcode instructons, but no PPU yet.
+Current state - it implements all the 256 official and unofficial opcode instructons, but no PPU yet.
 
 Useful links:  
 http://www.obelisk.me.uk/6502/  
