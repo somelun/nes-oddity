@@ -61,9 +61,7 @@ const NES_HEADER = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
 const LoadError = error{ UnsupportedMapper, UnsupportedFormat, InvalidFormat };
 
 // more about mirroring here: https://wiki.nesdev.com/w/index.php/Mirroring
-const Mirroring = enum {
-    Vertical, Horizontal, FourScreen
-};
+pub const Mirroring = enum { Vertical, Horizontal, FourScreen };
 
 pub const Rom = struct {
     prg_rom: []u8 = undefined,

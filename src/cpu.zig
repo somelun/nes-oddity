@@ -569,8 +569,7 @@ pub const CPU = struct {
     }
 
     fn getFlag(self: *CPU, flag: StatusFlag) u1 {
-        const number = @enumToInt(flag);
-        return if (self.status & number > 0) 1 else 0;
+        return if (self.status & @enumToInt(flag) > 0) 1 else 0;
     }
 
     fn updateZeroFlag(self: *CPU, value: u8) void {

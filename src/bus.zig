@@ -49,7 +49,6 @@ const PPU = @import("ppu.zig").PPU;
 
 const RAM_BEGIN: u16 = 0x0000;
 const RAM_MIRROR_END: u16 = 0x1FFF;
-const PPU_BEGIN: u16 = 0x2000;
 const PPU_MIRROR_END: u16 = 0x3FFF;
 const PRG_ROM_BEGIN: u16 = 0x8000;
 const PRG_ROM_END: u16 = 0xFFFF;
@@ -58,11 +57,14 @@ pub const Bus = struct {
     // 2KB of Work RAM available for the CPU
     wram: [0x800]u8 = [_]u8{0} ** 0x800,
 
+    ppu: PPU = undefined,
     rom: *Rom = undefined,
 
     pub fn init(rom: *Rom) Bus {
         var bus: Bus = Bus{};
         bus.rom = rom;
+
+        bus.ppu = PPU.init(rom.chr_rom, rom.screen_mirroring);
 
         return bus;
     }
@@ -74,12 +76,24 @@ pub const Bus = struct {
             RAM_BEGIN...RAM_MIRROR_END => {
                 data = self.wram[address & 0x07FF];
             },
-            PPU_BEGIN...PPU_MIRROR_END => {
-                // TODO: memory access for PPUmemory
+
+            0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014 => {
+                // std.debug.print("Attempt to read from write-only PPU address {:x}", .{address});
             },
+
+            0x2007 => {
+                data = self.ppu.readData();
+            },
+
+            0x2008...PPU_MIRROR_END => {
+                const mirror_down_addr: u16 = address & 0b00100000_00000111;
+                data = self.read8(mirror_down_addr);
+            },
+
             PRG_ROM_BEGIN...PRG_ROM_END => {
                 data = self.readPrgRom(address);
             },
+
             else => {},
         }
 
@@ -91,15 +105,27 @@ pub const Bus = struct {
             RAM_BEGIN...RAM_MIRROR_END => {
                 self.wram[address & 0x07FF] = data;
             },
-            PPU_BEGIN...PPU_MIRROR_END => {
-                // TODO: memory access for PPUmemory
+
+            0x2000 => {
+                self.ppu.writeToController(data);
             },
-            PRG_ROM_BEGIN...PRG_ROM_END => {
-                std.debug.print("Writing to Rom space is not available!\n", .{});
+
+            0x2006 => {
+                self.ppu.writeToAddress(data);
             },
-            else => {
-                // TODO: memory access for PPU
+
+            0x2007 => {
+                self.ppu.writeData(data);
             },
+
+            0x2008...PPU_MIRROR_END => {
+                const mirror_down_addr: u16 = address & 0b00100000_00000111;
+                self.write8(mirror_down_addr, data);
+            },
+
+            0x8000...0xFFFF => {},
+
+            else => {},
         }
     }
 
@@ -112,8 +138,8 @@ pub const Bus = struct {
 
     // sugar function
     pub fn write16(self: *Bus, address: u16, data: u16) void {
-        const hi = @intCast(u8, data >> 8);
-        const lo = @intCast(u8, data & 0xFF);
+        const hi: u8 = @intCast(u8, data >> 8);
+        const lo: u8 = @intCast(u8, data & 0xFF);
         self.write8(address, lo);
         self.write8(address + 1, hi);
     }
