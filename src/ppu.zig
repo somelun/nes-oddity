@@ -54,21 +54,51 @@ pub const PPU = struct {
         return ppu;
     }
 
-    pub fn writeToAddress(self: *PPU, data: u8) void {
-        self.addressRegister.update(data);
+    pub fn writeToAddressRegister(self: *PPU, value: u8) void {
+        self.addressRegister.update(value);
     }
 
-    pub fn writeToController(self: *PPU, data: u8) void {
-        self.controllerRegister.update(data);
+    pub fn writeToControllerRegister(self: *PPU, value: u8) void {
+        self.controllerRegister.update(value);
     }
 
-    pub fn writeData(self: *PPU, data: u8) void {
-        //
+    pub fn writeData(self: *PPU, value: u8) void {
+        const address: u16 = self.addressRegister.get();
+        switch (address) {
+            0...0x1FFF => {
+                // std.debug.print("attempt to write to chr rom space {X}", .{address});
+            },
+
+            0x2000...0x2FFF => {
+                self.vram[self.mirrorVRAMAddress(address)] = value;
+            },
+
+            0x3000...0x3EFF => {},
+
+            // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
+            // https://wiki.nesdev.org/w/index.php/PPU_palettes
+            0x3F00...0x3FFF => {
+                switch (address) {
+                    0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
+                        const add_mirror = address - 0x10;
+                        self.palette_table[add_mirror - 0x3F00] = value;
+                    },
+
+                    else => {
+                        self.palette_table[address - 0x3f00] = value;
+                    },
+                }
+            },
+
+            else => {},
+        }
+        self.incrementVRAMAddressRegister();
     }
 
+    // instead of implementing PPU Data Register (0x2007) we just have this function
     pub fn readData(self: *PPU) u8 {
         const address: u16 = self.addressRegister.get();
-        self.incrementVRAMAddress();
+        self.incrementVRAMAddressRegister();
 
         switch (address) {
             0...0x1FFF => {
@@ -86,11 +116,22 @@ pub const PPU = struct {
             },
 
             0x3000...0x3EFF => {
-                //addr space 0x3000..0x3eff is not expected to be used
+                //address space 0x3000..0x3EFF is not expected to be used
             },
 
+            // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
+            // https://wiki.nesdev.org/w/index.php/PPU_palettes
             0x3F00...0x3FFF => {
-                return self.palette_table[address - 0x3F00];
+                switch (address) {
+                    0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
+                        const add_mirror = address - 0x10;
+                        return self.palette_table[add_mirror - 0x3F00];
+                    },
+
+                    else => {
+                        return self.palette_table[address - 0x3F00];
+                    },
+                }
             },
 
             else => {},
@@ -99,7 +140,7 @@ pub const PPU = struct {
         return 0;
     }
 
-    fn incrementVRAMAddress(self: *PPU) void {
+    fn incrementVRAMAddressRegister(self: *PPU) void {
         self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
     }
 
@@ -141,8 +182,24 @@ pub const PPU = struct {
 };
 
 // PPU Controller Register (0x2000)
-pub const ControllerRegister = struct {
-    const Value = enum(u8) {
+const ControllerRegister = struct {
+    // 7  bit  0
+    // ---- ----
+    // VPHB SINN
+    // |||| ||||
+    // |||| ||++- Base nametable address
+    // |||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+    // |||| |+--- VRAM address increment per CPU read/write of PPUDATA
+    // |||| |     (0: add 1, going across; 1: add 32, going down)
+    // |||| +---- Sprite pattern table address for 8x8 sprites
+    // ||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
+    // |||+------ Background pattern table address (0: $0000; 1: $1000)
+    // ||+------- Sprite size (0: 8x8 pixels; 1: 8x16 pixels)
+    // |+-------- PPU master/slave select
+    // |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
+    // +--------- Generate an NMI at the start of the
+    //            vertical blanking interval (0: off; 1: on)
+    const Flags = enum(u8) {
         NametableLo = (1 << 0),
         NametableHi = (1 << 1),
         VRAMAddressIncrement = (1 << 2),
@@ -153,14 +210,16 @@ pub const ControllerRegister = struct {
         GenerateNMI = (1 << 7),
     };
 
-    value: u8 = 0,
+    flags: u8 = 0,
 
     pub fn init() ControllerRegister {
         return ControllerRegister{};
     }
 
+    pub fn nameTable(self: *ControllerRegister) u16 {}
+
     pub fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
-        if (self.value & @enumToInt(Value.VRAMAddressIncrement) > 0) {
+        if (self.flags & @enumToInt(Flags.VRAMAddressIncrement) > 0) {
             return 32;
         } else {
             return 1;
@@ -168,12 +227,64 @@ pub const ControllerRegister = struct {
     }
 
     pub fn update(self: *ControllerRegister, data: u8) void {
-        self.value = data;
+        self.flags = data;
+    }
+};
+
+// PPU Mask Register (0x2001)
+const MaskRegister = struct {};
+
+// PPU Status Register (0x2002)
+const StatusRegister = struct {
+    const Value = enum(u8) {
+        Unused1 = (1 << 0),
+        Unused2 = (1 << 1),
+        Unused3 = (1 << 2),
+        Unused4 = (1 << 3),
+        Unused5 = (1 << 4),
+        SpriteOverlow = (1 << 5),
+        SpriteZeroHit = (1 << 6),
+        VBlankStarted = (1 << 7),
+    };
+
+    value: u8 = 0,
+
+    pub fn init() StatusRegister {
+        return StatusRegister{};
+    }
+
+    // pub fn setVBlankStatus(self: *StatusRegister) void {
+    //     //self.set(StatusRegister::VBLANK_STARTED, status);
+    // }
+    //
+    // pub fn setSpriteZeroHit(self: *StatusRegister) void {
+    //     //self.set(StatusRegister::SPRITE_ZERO_HIT, status);
+    // }
+    //
+    // pub fn setSpriteOverflow(self: *StatusRegister) void {
+    //     //self.set(StatusRegister::SPRITE_OVERFLOW, status);
+    // }
+
+    pub fn setFlag(self: *StatusRegister, flag: Value, value: bool) void {
+        const number = @enumToInt(flag);
+        if (value) {
+            self.value = self.value | number;
+        } else {
+            self.value = self.value & (~number);
+        }
+    }
+
+    pub fn isVBlankStarted(self: *StatusRegister) bool {
+        return if (self.value & @enumToInt(Value.VBlackStarted) > 0) true else false;
+    }
+
+    pub fn snapshot(self: *StatusRegister) u8 {
+        return self.value;
     }
 };
 
 // PPU Address Register (0x2006)
-pub const AddressRegister = struct {
+const AddressRegister = struct {
     hi_byte: u8 = 0,
     lo_byte: u8 = 0,
     using_hi: bool = true,
@@ -208,7 +319,7 @@ pub const AddressRegister = struct {
     }
 
     pub fn increment(self: *AddressRegister, inc: u8) void {
-        var lo: u8 = self.lo_byte;
+        const lo: u8 = self.lo_byte;
         self.lo_byte +%= inc;
         if (lo > self.lo_byte) {
             self.hi_byte +%= 1;
@@ -221,10 +332,10 @@ pub const AddressRegister = struct {
         }
     }
 
-    pub fn reset_latch(self: *AddressRegister, data: u16) void {
+    pub fn reset_latch(self: *AddressRegister) void {
         self.using_hi = true;
     }
 };
 
 // PPU Data Register (0x2007)
-pub const DataRegister = struct {};
+const DataRegister = struct {};
