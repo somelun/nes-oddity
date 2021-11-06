@@ -140,12 +140,19 @@ pub const PPU = struct {
         return 0;
     }
 
-    fn incrementVRAMAddressRegister(self: *PPU) void {
-        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
+    fn readStatusRegister() void {
+        //
     }
 
+    // Horizotal mirroring:
+    // [A][a]
+    // [B][b]
+    //
+    // Vertical mirroring:
+    // [A][B]
+    // [a][b]
     fn mirrorVRAMAddress(self: *PPU, address: u16) u16 {
-        const mirrored_vram: u16 = address & 0b10111111111111; // mirror down 0x3000-0x3eff to 0x2000 - 0x2eff
+        const mirrored_vram: u16 = address & 0b10111111111111; // mirror down 0x3000-0x3EFF to 0x2000 - 0x2EFF
         const vram_index: u16 = mirrored_vram - 0x2000; // to vram vector
         const name_table: u16 = vram_index / 0x400; // to the name table index
 
@@ -179,6 +186,10 @@ pub const PPU = struct {
 
         return vram_index;
     }
+
+    fn incrementVRAMAddressRegister(self: *PPU) void {
+        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
+    }
 };
 
 // PPU Controller Register (0x2000)
@@ -203,11 +214,11 @@ const ControllerRegister = struct {
         NametableLo = (1 << 0),
         NametableHi = (1 << 1),
         VRAMAddressIncrement = (1 << 2),
-        SpritePatternAddress = (1 << 3),
+        SpritePatternTableAddress = (1 << 3),
         BackgroundPatternAddress = (1 << 4),
         SpriteSize = (1 << 5),
         MasterSlaveSelect = (1 << 6),
-        GenerateNMI = (1 << 7),
+        GenerateVBlanckNMI = (1 << 7),
     };
 
     flags: u8 = 0,
@@ -216,13 +227,55 @@ const ControllerRegister = struct {
         return ControllerRegister{};
     }
 
-    pub fn nameTable(self: *ControllerRegister) u16 {}
+    pub fn nametable(self: *controllerregister) u16 {
+        switch (self.flags & (@enumToInt(flags.nametablelo) ^ @enumToInt(flags.NametableHi))) {
+            0 => return 0x2000,
+            1 => return 0x2400,
+            2 => return 0x2800,
+            3 => return 0x2c00,
+        }
+    }
 
     pub fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
         if (self.flags & @enumToInt(Flags.VRAMAddressIncrement) > 0) {
             return 32;
         } else {
             return 1;
+        }
+    }
+
+    pub fn spritePatternAddress(self: *ControllerRegisger) u16 {
+        switch (self.flags & @enumToInt(Flags.SpritePatternAddress)) {
+            0 => return 0,
+            1 => return 0x1000,
+        }
+    }
+
+    pub fn spritePatternTableAddress(self: *ControllRegister) u16 {
+        switch (self.flags & @enumToInt(Flags.SpritePatternTableAddress)) {
+            0 => return 0,
+            1 => return 0x1000,
+        }
+    }
+
+    pub fn spriteSize(self: *ControllRegister) u8 {
+        switch (self.flags & @enumToInt(Flags.SpritePatternTableAddress)) {
+            0 => return 0x8,
+            1 => return 0x10,
+        }
+    }
+
+    pub fn masterSlaveSelect() bool {
+        switch (self.flags & @enumToInt(Flags.MasterSlaveSelect)) {
+            0 => return false,
+            1 => return true,
+        }
+    }
+
+    pub fn generateVBlanckNMI() bool {
+        switch (self.flags & @enumToInt(Flags.generateVBlanckNMI)) {
+            0 => return true,
+            1 => return false,
         }
     }
 

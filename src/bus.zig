@@ -81,13 +81,20 @@ pub const Bus = struct {
                 // std.debug.print("Attempt to read from write-only PPU address {:x}", .{address});
             },
 
+            // 0x2002 => {
+            //     self.ppu.read_status(),
+            // },
+
+            // 0x2004 => {
+            //     self.ppu.read_oam_data(),
+            // },
+
             0x2007 => {
                 data = self.ppu.readData();
             },
 
             0x2008...PPU_MIRROR_END => {
-                const mirror_down_addr: u16 = address & 0b00100000_00000111;
-                data = self.read8(mirror_down_addr);
+                data = self.read8(address & 0x2007);
             },
 
             PRG_ROM_BEGIN...PRG_ROM_END => {
@@ -119,8 +126,7 @@ pub const Bus = struct {
             },
 
             0x2008...PPU_MIRROR_END => {
-                const mirror_down_addr: u16 = address & 0b00100000_00000111;
-                self.write8(mirror_down_addr, data);
+                self.write8(address & 0x2007, data);
             },
 
             0x8000...0xFFFF => {},
