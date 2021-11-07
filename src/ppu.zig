@@ -210,6 +210,7 @@ const ControllerRegister = struct {
     // |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
     // +--------- Generate an NMI at the start of the
     //            vertical blanking interval (0: off; 1: on)
+    //
     const Flags = enum(u8) {
         NametableLo = (1 << 0),
         NametableHi = (1 << 1),
@@ -266,17 +267,11 @@ const ControllerRegister = struct {
     }
 
     pub fn masterSlaveSelect() bool {
-        switch (self.flags & @enumToInt(Flags.MasterSlaveSelect)) {
-            0 => return false,
-            1 => return true,
-        }
+        return (self.flags & @enumToInt(Flags.MasterSlaveSelect)) == 1;
     }
 
     pub fn generateVBlanckNMI() bool {
-        switch (self.flags & @enumToInt(Flags.generateVBlanckNMI)) {
-            0 => return true,
-            1 => return false,
-        }
+        return (self.flags & @enumToInt(Flags.generateVBlanckNMI)) == 1;
     }
 
     pub fn update(self: *ControllerRegister, data: u8) void {
@@ -285,7 +280,64 @@ const ControllerRegister = struct {
 };
 
 // PPU Mask Register (0x2001)
-const MaskRegister = struct {};
+const MaskRegister = struct {
+    // 7  bit  0
+    // ---- ----
+    // BGRs bMmG
+    // |||| ||||
+    // |||| |||+- Greyscale (0: normal color, 1: produce a greyscale display)
+    // |||| ||+-- 1: Show background in leftmost 8 pixels of screen, 0: Hide
+    // |||| |+--- 1: Show sprites in leftmost 8 pixels of screen, 0: Hide
+    // |||| +---- 1: Show background
+    // ||||
+    // |||+------ 1: Show sprites
+    // ||+------- Emphasize red (green on PAL/Dendy)
+    // |+-------- Emphasize green (red on PAL/Dendy)
+    // +--------- Emphasize blue
+    //
+    const Flags = enum(u8) {
+        Greyscale = (1 << 0),
+        ShowBackgroungInLeftmost8 = (1 << 1),
+        ShowSpritesInLeftmost8 = (1 << 2),
+        ShowBackground = (1 << 3),
+        ShowSprites = (1 << 4),
+        EmphasizeRed = (1 << 5),
+        EmphasizeGreen = (1 << 6),
+        EmphasizeBlue = (1 << 7),
+    };
+
+    flags: u8 = 0,
+
+    pub fn init() MaskRegister {
+        return MaskRegister{};
+    }
+
+    pub fn greyscale(self: *MaskRegister) bool {
+        return (self.flags & @enumToInt(Flags.Greyscale)) == 1;
+    }
+
+    pub fn showBackgroungInLeftmost8(self: *MaskRegister) bool {
+        return (self.flags & @enumToInt(Flags.ShowBackgroungInLeftmost8)) == 1;
+    }
+
+    pub fn showSpritesInLeftmost8(self: *MaskRegister) bool {
+        return (self.flags & @enumToInt(Flags.ShowSpritesInLeftmost8)) == 1;
+    }
+
+    pub fn showBackground(self: *MaskRegister) bool {
+        return (self.flags & @enumToInt(Flags.ShowBackground)) == 1;
+    }
+
+    pub fn showSprites(self: *MaskRegister) bool {
+        return (self.flags & @enumToInt(Flags.ShowSprites)) == 1;
+    }
+
+    //TODO: implement color emphasize when I understand how to do this
+
+    pub fn update(self: *MaskRegister, data: u8) void {
+        self.flags = data;
+    }
+};
 
 // PPU Status Register (0x2002)
 const StatusRegister = struct {
