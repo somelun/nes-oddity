@@ -266,11 +266,11 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn masterSlaveSelect() bool {
+    pub fn isMasterSlaveSelect() bool {
         return (self.flags & @enumToInt(Flags.MasterSlaveSelect)) == 1;
     }
 
-    pub fn generateVBlanckNMI() bool {
+    pub fn isGenerateVBlanckNMI() bool {
         return (self.flags & @enumToInt(Flags.generateVBlanckNMI)) == 1;
     }
 
@@ -312,23 +312,23 @@ const MaskRegister = struct {
         return MaskRegister{};
     }
 
-    pub fn greyscale(self: *MaskRegister) bool {
+    pub fn isGreyscale(self: *MaskRegister) bool {
         return (self.flags & @enumToInt(Flags.Greyscale)) == 1;
     }
 
-    pub fn showBackgroungInLeftmost8(self: *MaskRegister) bool {
+    pub fn isShowBackgroungInLeftmost8(self: *MaskRegister) bool {
         return (self.flags & @enumToInt(Flags.ShowBackgroungInLeftmost8)) == 1;
     }
 
-    pub fn showSpritesInLeftmost8(self: *MaskRegister) bool {
+    pub fn isShowSpritesInLeftmost8(self: *MaskRegister) bool {
         return (self.flags & @enumToInt(Flags.ShowSpritesInLeftmost8)) == 1;
     }
 
-    pub fn showBackground(self: *MaskRegister) bool {
+    pub fn isShowBackground(self: *MaskRegister) bool {
         return (self.flags & @enumToInt(Flags.ShowBackground)) == 1;
     }
 
-    pub fn showSprites(self: *MaskRegister) bool {
+    pub fn isShowSprites(self: *MaskRegister) bool {
         return (self.flags & @enumToInt(Flags.ShowSprites)) == 1;
     }
 
@@ -341,6 +341,27 @@ const MaskRegister = struct {
 
 // PPU Status Register (0x2002)
 const StatusRegister = struct {
+    // 7  bit  0
+    // ---- ----
+    // VSO. ....
+    // |||| ||||
+    // |||+-++++- Least significant bits previously written into a PPU register
+    // |||        (due to register not being updated for this address)
+    // ||+------- Sprite overflow. The intent was for this flag to be set
+    // ||         whenever more than eight sprites appear on a scanline, but a
+    // ||         hardware bug causes the actual behavior to be more complicated
+    // ||         and generate false positives as well as false negatives; see
+    // ||         PPU sprite evaluation. This flag is set during sprite
+    // ||         evaluation and cleared at dot 1 (the second dot) of the
+    // ||         pre-render line.
+    // |+-------- Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps
+    // |          a nonzero background pixel; cleared at dot 1 of the pre-render
+    // |          line.  Used for raster timing.
+    // +--------- Vertical blank has started (0: not in vblank; 1: in vblank).
+    //            Set at dot 1 of line 241 (the line *after* the post-render
+    //            line); cleared after reading $2002 and at dot 1 of the
+    //            pre-render line.
+    //
     const Value = enum(u8) {
         Unused1 = (1 << 0),
         Unused2 = (1 << 1),
@@ -358,29 +379,28 @@ const StatusRegister = struct {
         return StatusRegister{};
     }
 
-    // pub fn setVBlankStatus(self: *StatusRegister) void {
-    //     //self.set(StatusRegister::VBLANK_STARTED, status);
-    // }
-    //
-    // pub fn setSpriteZeroHit(self: *StatusRegister) void {
-    //     //self.set(StatusRegister::SPRITE_ZERO_HIT, status);
-    // }
-    //
-    // pub fn setSpriteOverflow(self: *StatusRegister) void {
-    //     //self.set(StatusRegister::SPRITE_OVERFLOW, status);
-    // }
+    pub fn setSpriteOverflow(self: *StatusRegister) void {
+        self.value = self.value & @enumToInt(Value.SpriteOverflow);
+    }
 
-    pub fn setFlag(self: *StatusRegister, flag: Value, value: bool) void {
-        const number = @enumToInt(flag);
-        if (value) {
-            self.value = self.value | number;
-        } else {
-            self.value = self.value & (~number);
-        }
+    pub fn setSpriteZeroHit(self: *StatusRegister) void {
+        self.value = self.value & @enumToInt(Value.SpriteZeroHit);
+    }
+
+    pub fn setVBlankStarted(self: *StatusRegister) void {
+        self.value = self.value & @enumToInt(Value.VBlankStarted);
+    }
+
+    pub fn isSpriteOverflow(self: *StatusRegister) bool {
+        return (self.value & @enumToInt(Value.SpriteOverflow)) == 1;
+    }
+
+    pub fn isSpriteZeroHit(self: *StatusRegister) bool {
+        self.value = (self.value & @enumToInt(Value.SpriteZeroHit)) == 1;
     }
 
     pub fn isVBlankStarted(self: *StatusRegister) bool {
-        return if (self.value & @enumToInt(Value.VBlackStarted) > 0) true else false;
+        self.value = (self.value & @enumToInt(Value.VBlankStarted)) == 1;
     }
 
     pub fn snapshot(self: *StatusRegister) u8 {
