@@ -11,7 +11,7 @@ const Tracer = @import("tracer.zig");
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
 
-pub const opcodes: [256]Opcode = comptime OpcodesAPI.generateOcpodes();
+pub const opcodes: [256]Opcode = OpcodesAPI.generateOcpodes();
 
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry

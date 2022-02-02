@@ -32,7 +32,7 @@ pub fn main() anyerror!void {
     defer c.SDL_DestroyRenderer(renderer);
 
     const texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_RGB888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
-        std.debug.warn("Cannot create texture: {s}", .{c.SDL_GetError()});
+        std.debug.print("Cannot create texture: {s}", .{c.SDL_GetError()});
         return error.SDLInitializationFailed;
     };
     defer c.SDL_DestroyTexture(texture);
@@ -83,10 +83,10 @@ pub fn main() anyerror!void {
         bus.write8(0xFE, @intCast(u8, @rem(c.rand(), 16) + 1));
 
         // TODO: count cycles and remove hardcoded count
-        var cycles: u8 = cpu.cycle();
+        _ = cpu.cycle();
 
         readScreenState(&cpu, &buffer);
-        const result: c_int = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
+        _ = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
 
         count -= 1;
         if (count == 0) {
@@ -182,10 +182,10 @@ test "CPU test with nestest.nes rom" {
         i = i - 1;
     }
 
-    const hi: u8 = 0x2;
-    const lo: u8 = 0x3;
-    const result_hi: u8 = bus.read8(hi);
-    const result_lo: u8 = bus.read8(lo);
+    // const hi: u8 = 0x2;
+    // const lo: u8 = 0x3;
+    // const result_hi: u8 = bus.read8(hi);
+    // const result_lo: u8 = bus.read8(lo);
 
     // there is correct output to compare with
     // http://www.qmtpro.com/~nes/misc/nestest.log

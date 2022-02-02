@@ -228,13 +228,15 @@ const ControllerRegister = struct {
         return ControllerRegister{};
     }
 
-    pub fn nametable(self: *controllerregister) u16 {
-        switch (self.flags & (@enumToInt(flags.nametablelo) ^ @enumToInt(flags.NametableHi))) {
-            0 => return 0x2000,
-            1 => return 0x2400,
-            2 => return 0x2800,
-            3 => return 0x2c00,
-        }
+    pub fn nametable(self: *ControllerRegister) u16 {
+        _ = self;
+        return 0;
+        // switch (self.flags & (@enumToInt(flags.NametableLo) ^ @enumToInt(flags.NametableHi))) {
+        //     0 => return 0x2000,
+        //     1 => return 0x2400,
+        //     2 => return 0x2800,
+        //     3 => return 0x2c00,
+        // }
     }
 
     pub fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
@@ -245,32 +247,32 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn spritePatternAddress(self: *ControllerRegisger) u16 {
+    pub fn spritePatternAddress(self: *ControllerRegister) u16 {
         switch (self.flags & @enumToInt(Flags.SpritePatternAddress)) {
             0 => return 0,
             1 => return 0x1000,
         }
     }
 
-    pub fn spritePatternTableAddress(self: *ControllRegister) u16 {
+    pub fn spritePatternTableAddress(self: *ControllerRegister) u16 {
         switch (self.flags & @enumToInt(Flags.SpritePatternTableAddress)) {
             0 => return 0,
             1 => return 0x1000,
         }
     }
 
-    pub fn spriteSize(self: *ControllRegister) u8 {
+    pub fn spriteSize(self: *ControllerRegister) u8 {
         switch (self.flags & @enumToInt(Flags.SpritePatternTableAddress)) {
             0 => return 0x8,
             1 => return 0x10,
         }
     }
 
-    pub fn isMasterSlaveSelect() bool {
+    pub fn isMasterSlaveSelect(self: *ControllerRegister) bool {
         return (self.flags & @enumToInt(Flags.MasterSlaveSelect)) == 1;
     }
 
-    pub fn isGenerateVBlanckNMI() bool {
+    pub fn isGenerateVBlanckNMI(self: *ControllerRegister) bool {
         return (self.flags & @enumToInt(Flags.generateVBlanckNMI)) == 1;
     }
 

@@ -102,16 +102,16 @@ pub const Rom = struct {
         const prg_rom_banks_number: u16 = header[4]; // every bank is 16kB
         const chr_rom_banks_number: u16 = header[5]; // every bank is 8kB
         const control_byte_1: u8 = header[6];
-        const control_byte_2: u8 = header[7];
-        const prg_ram_size: u8 = header[8]; // in 8kB units
+        // const control_byte_2: u8 = header[7];
+        // const prg_ram_size: u8 = header[8]; // in 8kB units
 
         // parsing control_byte_1
         const vertical_mirroring: bool = control_byte_1 & 0b1 == 0b1;
-        const battery: bool = control_byte_1 & 0b10 == 0b10;
+        // const battery: bool = control_byte_1 & 0b10 == 0b10;
         const trainer: bool = control_byte_1 & 0b100 == 0b100;
         const four_screen: bool = control_byte_1 & 0b1000 == 0b1000;
 
-        const mapper_type: u8 = ((control_byte_2 & 0b11110000) | (control_byte_1 & 0b11110000 >> 4));
+        // const mapper_type: u8 = ((control_byte_2 & 0b11110000) | (control_byte_1 & 0b11110000 >> 4));
 
         if (four_screen) {
             self.screen_mirroring = Mirroring.FourScreen;
@@ -123,7 +123,7 @@ pub const Rom = struct {
         const chr_rom_size: u16 = chr_rom_banks_number * 8 * 1024;
 
         const prg_rom_start: u16 = if (trainer) 16 + 512 else 16;
-        const chr_rom_start: u16 = prg_rom_start + prg_rom_start;
+        // const chr_rom_start: u16 = prg_rom_start + prg_rom_start;
 
         const allocator = std.heap.page_allocator;
         self.prg_rom = try allocator.alloc(u8, prg_rom_size);
