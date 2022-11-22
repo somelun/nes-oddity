@@ -9,7 +9,7 @@ pub fn build(b: *Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
 
-    exe.addIncludeDir("/usr/local/include");
+    exe.addIncludePath("/usr/local/include");
     exe.linkSystemLibrary("SDL2");
     exe.linkSystemLibrary("c");
     exe.install();

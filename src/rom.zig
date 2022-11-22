@@ -84,7 +84,7 @@ pub const Rom = struct {
     }
 
     fn load(self: *Rom, path: []const u8) !void {
-        const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{ .read = true });
+        const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{ .mode = .read_only });
         defer file.close();
 
         // reading header - first row of bytes

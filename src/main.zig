@@ -8,7 +8,7 @@ const Rom = @import("rom.zig").Rom;
 const Bus = @import("bus.zig").Bus;
 const CPU = @import("cpu.zig").CPU;
 
-const Color = struct { r: u8, g: u8, b: u8 = 0 };
+const Color = struct { r: u8 = 0, g: u8 = 0, b: u8 = 0 };
 
 pub fn main() anyerror!void {
     c.srand(@intCast(u32, c.time(0)));
@@ -98,8 +98,7 @@ pub fn main() anyerror!void {
         }
 
         // TODO: NES cpu works with 1.7 MHz, every game runs at 60 fps
-        // thats what required to imlement, I'll do this after implementing Bus
-        // and starting to do PPU
+        // that is what required to implement, I'll do this after implementing Bus and PPU
     }
 }
 
