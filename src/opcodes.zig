@@ -1,5 +1,3 @@
-const std = @import("std");
-
 pub const AddressingMode = enum {
     Implied,
     Accumulator,
