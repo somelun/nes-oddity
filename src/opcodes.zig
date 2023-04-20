@@ -1,5 +1,4 @@
 const std = @import("std");
-const AutoHashMap = @import("std").AutoHashMap;
 
 pub const AddressingMode = enum {
     Implied,
