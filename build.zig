@@ -3,19 +3,25 @@ const Builder = @import("std").build.Builder;
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
 
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{});
 
-    const exe = b.addExecutable("nes-oddity", "src/main.zig");
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
+    const exe = b.addExecutable(.{
+        .name = "nes-oddity",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
 
-    exe.addIncludePath("/usr/local/include");
+    exe.addIncludePath(.{ .path = "/usr/local/include" });
     exe.linkSystemLibrary("SDL2");
-    exe.linkSystemLibrary("c");
-    exe.install();
 
-    const run_cmd = exe.run();
+    b.installArtifact(exe);
+
+    const run_cmd = b.addRunArtifact(exe);
+
     run_cmd.step.dependOn(b.getInstallStep());
+
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }

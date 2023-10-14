@@ -11,7 +11,7 @@ const CPU = @import("cpu.zig").CPU;
 const Color = struct { r: u8 = 0, g: u8 = 0, b: u8 = 0 };
 
 pub fn main() anyerror!void {
-    c.srand(@intCast(u32, c.time(0)));
+    c.srand(@intCast(c.time(0)));
 
     if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
@@ -56,7 +56,7 @@ pub fn main() anyerror!void {
 
         // TODO: someday switch to https://stackoverflow.com/questions/11699183/what-is-the-best-way-to-read-input-from-keyboard-using-sdl
         while (c.SDL_PollEvent(&event) != 0) {
-            switch (event.@"type") {
+            switch (event.type) {
                 c.SDL_KEYUP, c.SDL_KEYDOWN => {
                     const down = event.type == c.SDL_KEYDOWN;
 
@@ -80,13 +80,13 @@ pub fn main() anyerror!void {
             }
         }
         // input requires random number at 0xFE
-        bus.write8(0xFE, @intCast(u8, @rem(c.rand(), 16) + 1));
+        bus.write8(0xFE, @intCast(@rem(c.rand(), 16) + 1));
 
         // TODO: count cycles and remove hardcoded count
         _ = cpu.cycle();
 
         readScreenState(&cpu, &buffer);
-        _ = c.SDL_UpdateTexture(texture, 0, &buffer[0], @intCast(c_int, 32) * @sizeOf(u24));
+        _ = c.SDL_UpdateTexture(texture, 0, &buffer[0], 32 * @sizeOf(u24));
 
         count -= 1;
         if (count == 0) {

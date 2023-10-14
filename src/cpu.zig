@@ -156,9 +156,9 @@ pub const CPU = struct {
                 // actual address from another page, but this chip wraps address back to the
                 // same page TODO: test this please
                 if (ptr & 0x00FF == 0x00FF) {
-                    address = (@intCast(u16, self.bus.read8(ptr & 0xFF00)) << 8) | self.bus.read8(ptr);
+                    address = (@as(u16, self.bus.read8(ptr & 0xFF00)) << 8) | self.bus.read8(ptr);
                 } else {
-                    address = (@intCast(u16, self.bus.read8(ptr + 1)) << 8) | self.bus.read8(ptr);
+                    address = (@as(u16, self.bus.read8(ptr + 1)) << 8) | self.bus.read8(ptr);
                 }
             },
 
@@ -525,18 +525,18 @@ pub const CPU = struct {
     // Stack Operations
 
     fn pushToStack(self: *CPU, value: u8) void {
-        self.bus.write8(0x0100 + @intCast(u16, self.stack_pointer), value);
+        self.bus.write8(0x0100 + @as(u16, self.stack_pointer), value);
         self.decrementStackPointer();
     }
 
     fn popFromStack(self: *CPU) u8 {
         self.incrementStackPointer();
-        return self.bus.read8(0x0100 + @intCast(u16, self.stack_pointer));
+        return self.bus.read8(0x0100 + @as(u16, self.stack_pointer));
     }
 
     pub fn readFromStack(self: *CPU) u8 {
         self.incrementStackPointer();
-        const t: u8 = self.bus.read8(0x0100 + @intCast(u16, self.stack_pointer));
+        const t: u8 = self.bus.read8(0x0100 + @as(u16, self.stack_pointer));
         self.decrementStackPointer();
         return t;
     }
@@ -560,7 +560,7 @@ pub const CPU = struct {
     }
 
     fn setFlag(self: *CPU, flag: StatusFlag, value: bool) void {
-        const number = @enumToInt(flag);
+        const number = @intFromEnum(flag);
         if (value) {
             self.status = self.status | number;
         } else {
@@ -569,7 +569,7 @@ pub const CPU = struct {
     }
 
     fn getFlag(self: *CPU, flag: StatusFlag) u1 {
-        return if (self.status & @enumToInt(flag) > 0) 1 else 0;
+        return if (self.status & @intFromEnum(flag) > 0) 1 else 0;
     }
 
     fn updateZeroFlag(self: *CPU, value: u8) void {
@@ -592,13 +592,20 @@ pub const CPU = struct {
     // Helpers
 
     fn addToRegisterA(self: *CPU, value: u8) void {
-        const result: u16 = @intCast(u16, self.register_a) + value + @intCast(u16, self.getFlag(StatusFlag.C));
+        // const result: u16 = @as(u16, self.register_a) + value + @as(u16, self.getFlag(StatusFlag.C));
+        //
+        // self.setFlag(StatusFlag.C, result > 0xFF);
+        // self.setFlag(StatusFlag.V, (~(@as(u16, self.register_a) ^ value) & (@as(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        // self.updateZeroAndNegativeFlag(@as(u8, result & 0x00FF)); // SASHA
+        //
+        // self.register_a = @as(u8, result & 0x00FF);
+        const result: u8 = self.register_a + value + self.getFlag(StatusFlag.C);
 
         self.setFlag(StatusFlag.C, result > 0xFF);
-        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ value) & (@intCast(u16, self.register_a) ^ result)) & 0x0080 != 0);
-        self.updateZeroAndNegativeFlag(@intCast(u8, result & 0x00FF));
+        self.setFlag(StatusFlag.V, (~(self.register_a ^ value) & (self.register_a ^ result)) & 0x0080 != 0);
+        self.updateZeroAndNegativeFlag(result & 0x00FF); // SASHA
 
-        self.register_a = @intCast(u8, result & 0x00FF);
+        self.register_a = @as(u8, result & 0x00FF);
     }
 
     ///////////////////////////////////////////////////////
@@ -804,8 +811,8 @@ pub const CPU = struct {
     fn _jsr(self: *CPU, mode: AddressingMode) void {
         const address: u16 = self.getOperandAddress(mode);
 
-        const hi: u8 = @intCast(u8, ((self.program_counter + 1) >> 8) & 0xFF);
-        const lo: u8 = @intCast(u8, (self.program_counter + 1) & 0xFF);
+        const hi: u8 = @intCast(((self.program_counter + 1) >> 8) & 0xFF);
+        const lo: u8 = @intCast((self.program_counter + 1) & 0xFF);
         self.pushToStack(hi);
         self.pushToStack(lo);
 
@@ -980,27 +987,37 @@ pub const CPU = struct {
         self.setFlag(StatusFlag.B, false);
         self.setFlag(StatusFlag.U, true);
 
-        self.program_counter = (@intCast(u16, hi) << 8) | (@intCast(u16, lo));
+        self.program_counter = (@as(u16, hi) << 8) | (@as(u16, lo));
     }
 
     fn _rts(self: *CPU) void {
         const lo: u8 = self.popFromStack();
         const hi: u8 = self.popFromStack();
 
-        self.program_counter = ((@intCast(u16, hi) << 8) | (@intCast(u16, lo))) + 1;
+        self.program_counter = ((@as(u16, hi) << 8) | (@as(u16, lo))) + 1;
     }
 
     fn _sbc(self: *CPU, mode: AddressingMode) void {
+        // const address: u16 = self.getOperandAddress(mode);
+        // const fetched: u16 = @as(u16, self.bus.read8(address)) ^ 0x00FF;
+        //
+        // const result: u16 = @as(u16, self.register_a) + fetched + @as(u16, self.getFlag(StatusFlag.C));
+        //
+        // self.setFlag(StatusFlag.C, result > 0xFF);
+        // self.setFlag(StatusFlag.V, (~(@as(u16, self.register_a) ^ fetched) & (@as(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        // self.updateZeroAndNegativeFlag(@as(u8, result & 0x00FF)); // SASHA
+        //
+        // self.register_a = @as(u8, result & 0x00FF);
         const address: u16 = self.getOperandAddress(mode);
-        const fetched: u16 = @intCast(u16, self.bus.read8(address)) ^ 0x00FF;
+        const fetched: u8 = self.bus.read8(address) ^ 0x00FF;
 
-        const result: u16 = @intCast(u16, self.register_a) + fetched + @intCast(u16, self.getFlag(StatusFlag.C));
+        const result: u8 = self.register_a + fetched + self.getFlag(StatusFlag.C);
 
         self.setFlag(StatusFlag.C, result > 0xFF);
-        self.setFlag(StatusFlag.V, (~(@intCast(u16, self.register_a) ^ fetched) & (@intCast(u16, self.register_a) ^ result)) & 0x0080 != 0);
-        self.updateZeroAndNegativeFlag(@intCast(u8, result & 0x00FF));
+        self.setFlag(StatusFlag.V, (~(self.register_a ^ fetched) & (self.register_a ^ result)) & 0x0080 != 0);
+        self.updateZeroAndNegativeFlag(result & 0x00FF); // SASHA
 
-        self.register_a = @intCast(u8, result & 0x00FF);
+        self.register_a = result & 0x00FF;
     }
 
     fn _sec(self: *CPU) void {

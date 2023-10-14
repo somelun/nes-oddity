@@ -144,8 +144,8 @@ pub const Bus = struct {
 
     // sugar function
     pub fn write16(self: *Bus, address: u16, data: u16) void {
-        const hi: u8 = @intCast(u8, data >> 8);
-        const lo: u8 = @intCast(u8, data & 0xFF);
+        const hi: u8 = @intCast(data >> 8);
+        const lo: u8 = @intCast(data & 0xFF);
         self.write8(address, lo);
         self.write8(address + 1, hi);
     }

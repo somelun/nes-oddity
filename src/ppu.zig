@@ -231,7 +231,7 @@ const ControllerRegister = struct {
     pub fn nametable(self: *ControllerRegister) u16 {
         _ = self;
         return 0;
-        // switch (self.flags & (@enumToInt(flags.NametableLo) ^ @enumToInt(flags.NametableHi))) {
+        // switch (self.flags & (@intFromEnum(flags.NametableLo) ^ @intFromEnum(flags.NametableHi))) {
         //     0 => return 0x2000,
         //     1 => return 0x2400,
         //     2 => return 0x2800,
@@ -240,7 +240,7 @@ const ControllerRegister = struct {
     }
 
     pub fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
-        if (self.flags & @enumToInt(Flags.VRAMAddressIncrement) > 0) {
+        if (self.flags & @intFromEnum(Flags.VRAMAddressIncrement) > 0) {
             return 32;
         } else {
             return 1;
@@ -248,32 +248,32 @@ const ControllerRegister = struct {
     }
 
     pub fn spritePatternAddress(self: *ControllerRegister) u16 {
-        switch (self.flags & @enumToInt(Flags.SpritePatternAddress)) {
+        switch (self.flags & @intFromEnum(Flags.SpritePatternAddress)) {
             0 => return 0,
             1 => return 0x1000,
         }
     }
 
     pub fn spritePatternTableAddress(self: *ControllerRegister) u16 {
-        switch (self.flags & @enumToInt(Flags.SpritePatternTableAddress)) {
+        switch (self.flags & @intFromEnum(Flags.SpritePatternTableAddress)) {
             0 => return 0,
             1 => return 0x1000,
         }
     }
 
     pub fn spriteSize(self: *ControllerRegister) u8 {
-        switch (self.flags & @enumToInt(Flags.SpritePatternTableAddress)) {
+        switch (self.flags & @intFromEnum(Flags.SpritePatternTableAddress)) {
             0 => return 0x8,
             1 => return 0x10,
         }
     }
 
     pub fn isMasterSlaveSelect(self: *ControllerRegister) bool {
-        return (self.flags & @enumToInt(Flags.MasterSlaveSelect)) == 1;
+        return (self.flags & @intFromEnum(Flags.MasterSlaveSelect)) == 1;
     }
 
     pub fn isGenerateVBlanckNMI(self: *ControllerRegister) bool {
-        return (self.flags & @enumToInt(Flags.generateVBlanckNMI)) == 1;
+        return (self.flags & @intFromEnum(Flags.generateVBlanckNMI)) == 1;
     }
 
     pub fn update(self: *ControllerRegister, data: u8) void {
@@ -315,23 +315,23 @@ const MaskRegister = struct {
     }
 
     pub fn isGreyscale(self: *MaskRegister) bool {
-        return (self.flags & @enumToInt(Flags.Greyscale)) == 1;
+        return (self.flags & @intFromEnum(Flags.Greyscale)) == 1;
     }
 
     pub fn isShowBackgroungInLeftmost8(self: *MaskRegister) bool {
-        return (self.flags & @enumToInt(Flags.ShowBackgroungInLeftmost8)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowBackgroungInLeftmost8)) == 1;
     }
 
     pub fn isShowSpritesInLeftmost8(self: *MaskRegister) bool {
-        return (self.flags & @enumToInt(Flags.ShowSpritesInLeftmost8)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowSpritesInLeftmost8)) == 1;
     }
 
     pub fn isShowBackground(self: *MaskRegister) bool {
-        return (self.flags & @enumToInt(Flags.ShowBackground)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowBackground)) == 1;
     }
 
     pub fn isShowSprites(self: *MaskRegister) bool {
-        return (self.flags & @enumToInt(Flags.ShowSprites)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowSprites)) == 1;
     }
 
     //TODO: implement color emphasize when I understand how to do this
@@ -382,27 +382,27 @@ const StatusRegister = struct {
     }
 
     pub fn setSpriteOverflow(self: *StatusRegister) void {
-        self.value = self.value & @enumToInt(Value.SpriteOverflow);
+        self.value = self.value & @intFromEnum(Value.SpriteOverflow);
     }
 
     pub fn setSpriteZeroHit(self: *StatusRegister) void {
-        self.value = self.value & @enumToInt(Value.SpriteZeroHit);
+        self.value = self.value & @intFromEnum(Value.SpriteZeroHit);
     }
 
     pub fn setVBlankStarted(self: *StatusRegister) void {
-        self.value = self.value & @enumToInt(Value.VBlankStarted);
+        self.value = self.value & @intFromEnum(Value.VBlankStarted);
     }
 
     pub fn isSpriteOverflow(self: *StatusRegister) bool {
-        return (self.value & @enumToInt(Value.SpriteOverflow)) == 1;
+        return (self.value & @intFromEnum(Value.SpriteOverflow)) == 1;
     }
 
     pub fn isSpriteZeroHit(self: *StatusRegister) bool {
-        self.value = (self.value & @enumToInt(Value.SpriteZeroHit)) == 1;
+        self.value = (self.value & @intFromEnum(Value.SpriteZeroHit)) == 1;
     }
 
     pub fn isVBlankStarted(self: *StatusRegister) bool {
-        self.value = (self.value & @enumToInt(Value.VBlankStarted)) == 1;
+        self.value = (self.value & @intFromEnum(Value.VBlankStarted)) == 1;
     }
 
     pub fn snapshot(self: *StatusRegister) u8 {
@@ -421,8 +421,8 @@ const AddressRegister = struct {
     }
 
     pub fn set(self: *AddressRegister, data: u16) void {
-        self.hi_byte = @intCast(u8, data >> 8);
-        self.lo_byte = @intCast(u8, data & 0xFF);
+        self.hi_byte = @intCast(data >> 8);
+        self.lo_byte = @intCast(data & 0xFF);
     }
 
     pub fn get(self: *AddressRegister) u16 {

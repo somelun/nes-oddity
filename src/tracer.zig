@@ -46,8 +46,8 @@ pub fn trace(cpu: *CPU) void {
             stored_value = cpu.bus.read8(mem_address);
 
             // for the easy output split memory for hi and lo
-            mem_hi = @intCast(u8, mem_address >> 8);
-            mem_lo = @intCast(u8, mem_address & 0xFF);
+            mem_hi = @intCast(mem_address >> 8);
+            mem_lo = @intCast(mem_address & 0xFF);
         },
     }
 
