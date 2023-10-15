@@ -159,7 +159,7 @@ pub const Bus = struct {
     // should be mapped to the lower bank
     fn readPrgRom(self: *Bus, address: u16) u8 {
         var addr: u16 = address - 0x8000;
-        if (mem.len(self.rom.prg_rom) == 0x4000 and addr >= 0x4000) {
+        if (self.rom.prg_rom.len == 0x4000 and addr >= 0x4000) {
             //mirror if needed
             addr = addr % 0x4000;
         }
