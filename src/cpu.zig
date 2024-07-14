@@ -128,7 +128,7 @@ pub const CPU = struct {
             },
 
             AddressingMode.Relative => {
-                var offset: u8 = self.bus.read8(self.program_counter);
+                const offset: u8 = self.bus.read8(self.program_counter);
                 address = self.program_counter +% offset +% 1;
 
                 // if the offset is negative

@@ -149,7 +149,7 @@ fn readScreenState(cpu: *CPU, buffer: []u24) void {
     var i: u16 = 0x0200;
     while (i < 0x0600) : (i += 1) {
         const value = cpu.bus.read8(i);
-        var color: Color = convertByteToColor(value);
+        const color: Color = convertByteToColor(value);
 
         buffer[index] = (@as(u24, color.r) << 16) + (@as(u24, color.g) << 8) + @as(u24, color.b);
         index += 1;
