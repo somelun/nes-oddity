@@ -1,6 +1,6 @@
 .DS_Store
-zig-cache/*
 zig-out/*
+.zig-cache/*
 src/zig-cache/*
 nestest.log
 output.txt
