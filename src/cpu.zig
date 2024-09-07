@@ -70,7 +70,7 @@ pub const CPU = struct {
             Tracer.trace(self);
         }
 
-        // store initial PC value for the later incrementation if it not
+        // store initial PC value for the later incrementation if it is not
         // changed (for example after branch instruction)
         const initial_pc: u16 = self.program_counter;
 

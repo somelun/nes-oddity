@@ -37,7 +37,9 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
-    var rom = try Rom.init("roms/snake.nes");
+    var rom = Rom.init("roms/snake.nes") catch {
+        return;
+    };
     defer rom.deinit();
 
     var bus = Bus.init(&rom);
@@ -47,7 +49,7 @@ pub fn main() anyerror!void {
 
     var buffer: [32 * 32]u24 = undefined;
 
-    var count: u8 = 30;
+    var count: u32 = 30;
 
     // sdl loop
     var quit = false;

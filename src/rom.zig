@@ -58,7 +58,7 @@ const std = @import("std");
 
 const NES_HEADER = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
 
-const LoadError = error{ UnsupportedMapper, UnsupportedFormat, InvalidFormat };
+const ROMLoadError = error{ FileNotFound, UnsupportedMapper, UnsupportedFormat, InvalidFormat };
 
 // more about mirroring here: https://wiki.nesdev.com/w/index.php/Mirroring
 pub const Mirroring = enum { Vertical, Horizontal, FourScreen };
@@ -84,18 +84,25 @@ pub const Rom = struct {
     }
 
     fn load(self: *Rom, path: []const u8) !void {
-        const file = try std.fs.cwd().openFile(path, std.fs.File.OpenFlags{ .mode = .read_only });
+        const cwd = std.fs.cwd();
+        const file = cwd.openFile(path, std.fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
+            if (err == error.FileNotFound) {
+                return ROMLoadError.FileNotFound;
+            } else {
+                return err;
+            }
+        };
         defer file.close();
 
         // reading header - first row of bytes
         var header: [16]u8 = undefined;
         const read = try file.read(header[0..header.len]);
         if (read != 16) {
-            return LoadError.InvalidFormat;
+            return ROMLoadError.InvalidFormat;
         }
 
         if (!std.mem.eql(u8, header[0..4], &NES_HEADER)) {
-            return LoadError.UnsupportedFormat;
+            return ROMLoadError.UnsupportedFormat;
         }
 
         // reading all from the header
