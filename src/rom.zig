@@ -58,7 +58,7 @@ const std = @import("std");
 
 const NES_HEADER = [_]u8{ 0x4E, 0x45, 0x53, 0x1A };
 
-const ROMLoadError = error{ FileNotFound, UnsupportedMapper, UnsupportedFormat, InvalidFormat };
+const ROMLoadError = error{ UnsupportedMapper, UnsupportedFormat, InvalidFormat };
 
 // more about mirroring here: https://wiki.nesdev.com/w/index.php/Mirroring
 pub const Mirroring = enum { Vertical, Horizontal, FourScreen };
@@ -72,7 +72,26 @@ pub const Rom = struct {
     pub fn init(path: []const u8) !Rom {
         var rom: Rom = undefined;
 
-        try rom.load(path);
+        rom.load(path) catch |err| {
+            const stdout = std.io.getStdOut().writer();
+            switch (err) {
+                error.FileNotFound => {
+                    try stdout.print("File does not exist: {s}\n", .{path});
+                },
+                ROMLoadError.UnsupportedMapper => {
+                    try stdout.print("Unsupported mapper: {s}\n", .{path});
+                },
+                ROMLoadError.UnsupportedFormat => {
+                    try stdout.print("Unsupported format: {s}\n", .{path});
+                },
+                ROMLoadError.InvalidFormat => {
+                    try stdout.print("Invalid format: {s}\n", .{path});
+                },
+                else => {
+                    try stdout.print("Unknown error reading file: {s}\n", .{path});
+                },
+            }
+        };
 
         return rom;
     }
@@ -86,13 +105,7 @@ pub const Rom = struct {
     fn load(self: *Rom, path: []const u8) !void {
         const cwd = std.fs.cwd();
         const file = cwd.openFile(path, std.fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
-            if (err == error.FileNotFound) {
-                const stdout = std.io.getStdOut().writer();
-                try stdout.print("File does not exist: {s}\n", .{path});
-                return ROMLoadError.FileNotFound;
-            } else {
-                return err;
-            }
+            return err;
         };
         defer file.close();
 
