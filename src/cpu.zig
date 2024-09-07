@@ -8,6 +8,8 @@ const AddressingMode = OpcodesAPI.AddressingMode;
 
 const Tracer = @import("tracer.zig");
 
+const isDebug = @import("builtin").mode == .Debug;
+
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
 
@@ -33,9 +35,6 @@ pub const CPU = struct {
     stack_pointer: u8 = 0xFD,
 
     bus: *Bus = undefined,
-
-    // if true, debug trace will be printed (used for nestest.rom)
-    debug_trace: bool = false,
 
     pub fn init(bus: *Bus) CPU {
         var cpu = CPU{};
@@ -66,7 +65,7 @@ pub const CPU = struct {
     }
 
     pub fn cycle(self: *CPU) u8 {
-        if (self.debug_trace) {
+        if (isDebug) {
             Tracer.trace(self);
         }
 

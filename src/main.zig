@@ -167,7 +167,6 @@ test "CPU test with nestest.nes rom" {
     var bus = Bus.init(&rom);
 
     var cpu = CPU.init(&bus);
-    cpu.debug_trace = true;
     cpu.reset();
 
     // according to documentation, to run this rom in automation mode,
