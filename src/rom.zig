@@ -87,6 +87,8 @@ pub const Rom = struct {
         const cwd = std.fs.cwd();
         const file = cwd.openFile(path, std.fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
             if (err == error.FileNotFound) {
+                const stdout = std.io.getStdOut().writer();
+                try stdout.print("File does not exist: {s}\n", .{path});
                 return ROMLoadError.FileNotFound;
             } else {
                 return err;
