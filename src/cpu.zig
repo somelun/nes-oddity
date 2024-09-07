@@ -8,7 +8,7 @@ const AddressingMode = OpcodesAPI.AddressingMode;
 
 const Tracer = @import("tracer.zig");
 
-const isDebug = @import("builtin").mode == .Debug;
+const isDebug = false; //@import("builtin").mode == .Debug;
 
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;

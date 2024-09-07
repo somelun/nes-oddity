@@ -99,6 +99,8 @@ pub fn main() anyerror!void {
             c.SDL_RenderPresent(renderer);
         }
 
+        std.time.sleep(16 * 1000 * 10);
+
         // TODO: NES cpu works with 1.7 MHz, every game runs at 60 fps
         // that is what required to implement, I'll do this after implementing Bus and PPU
     }
