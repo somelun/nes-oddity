@@ -3,4 +3,4 @@ zig-out/*
 .zig-cache/*
 src/zig-cache/*
 nestest.log
-output.txt
+*.txt

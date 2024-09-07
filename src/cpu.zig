@@ -592,20 +592,14 @@ pub const CPU = struct {
     // Helpers
 
     fn addToRegisterA(self: *CPU, value: u8) void {
-        // const result: u16 = @as(u16, self.register_a) + value + @as(u16, self.getFlag(StatusFlag.C));
-        //
-        // self.setFlag(StatusFlag.C, result > 0xFF);
-        // self.setFlag(StatusFlag.V, (~(@as(u16, self.register_a) ^ value) & (@as(u16, self.register_a) ^ result)) & 0x0080 != 0);
-        // self.updateZeroAndNegativeFlag(@as(u8, result & 0x00FF)); // SASHA
-        //
-        // self.register_a = @as(u8, result & 0x00FF);
-        const result: u8 = self.register_a + value + self.getFlag(StatusFlag.C);
+        const result: u16 = @as(u16, self.register_a) + value + @as(u16, self.getFlag(StatusFlag.C));
 
         self.setFlag(StatusFlag.C, result > 0xFF);
-        self.setFlag(StatusFlag.V, (~(self.register_a ^ value) & (self.register_a ^ result)) & 0x0080 != 0);
-        self.updateZeroAndNegativeFlag(result & 0x00FF); // SASHA
+        self.setFlag(StatusFlag.V, (~(@as(u16, self.register_a) ^ value) & (@as(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        const truncated: u8 = @truncate(result & 0x00FF);
+        self.updateZeroAndNegativeFlag(truncated);
 
-        self.register_a = @as(u8, result & 0x00FF);
+        self.register_a = truncated;
     }
 
     ///////////////////////////////////////////////////////
@@ -998,26 +992,17 @@ pub const CPU = struct {
     }
 
     fn _sbc(self: *CPU, mode: AddressingMode) void {
-        // const address: u16 = self.getOperandAddress(mode);
-        // const fetched: u16 = @as(u16, self.bus.read8(address)) ^ 0x00FF;
-        //
-        // const result: u16 = @as(u16, self.register_a) + fetched + @as(u16, self.getFlag(StatusFlag.C));
-        //
-        // self.setFlag(StatusFlag.C, result > 0xFF);
-        // self.setFlag(StatusFlag.V, (~(@as(u16, self.register_a) ^ fetched) & (@as(u16, self.register_a) ^ result)) & 0x0080 != 0);
-        // self.updateZeroAndNegativeFlag(@as(u8, result & 0x00FF)); // SASHA
-        //
-        // self.register_a = @as(u8, result & 0x00FF);
         const address: u16 = self.getOperandAddress(mode);
-        const fetched: u8 = self.bus.read8(address) ^ 0x00FF;
+        const fetched: u16 = @as(u16, self.bus.read8(address)) ^ 0x00FF;
 
-        const result: u8 = self.register_a + fetched + self.getFlag(StatusFlag.C);
+        const result: u16 = @as(u16, self.register_a) + fetched + @as(u16, self.getFlag(StatusFlag.C));
 
         self.setFlag(StatusFlag.C, result > 0xFF);
-        self.setFlag(StatusFlag.V, (~(self.register_a ^ fetched) & (self.register_a ^ result)) & 0x0080 != 0);
-        self.updateZeroAndNegativeFlag(result & 0x00FF); // SASHA
+        self.setFlag(StatusFlag.V, (~(@as(u16, self.register_a) ^ fetched) & (@as(u16, self.register_a) ^ result)) & 0x0080 != 0);
+        const truncated: u8 = @truncate(result & 0x00FF);
+        self.updateZeroAndNegativeFlag(truncated);
 
-        self.register_a = result & 0x00FF;
+        self.register_a = truncated;
     }
 
     fn _sec(self: *CPU) void {
