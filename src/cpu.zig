@@ -6,10 +6,6 @@ const OpcodesAPI = @import("opcodes.zig");
 const Opcode = OpcodesAPI.Opcode;
 const AddressingMode = OpcodesAPI.AddressingMode;
 
-const Tracer = @import("tracer.zig");
-
-const isDebug = false; //@import("builtin").mode == .Debug;
-
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
 
@@ -65,10 +61,6 @@ pub const CPU = struct {
     }
 
     pub fn cycle(self: *CPU) u8 {
-        if (isDebug) {
-            Tracer.trace(self);
-        }
-
         // store initial PC value for the later incrementation if it is not
         // changed (for example after branch instruction)
         const initial_pc: u16 = self.program_counter;
@@ -1122,10 +1114,13 @@ pub const CPU = struct {
 };
 
 test "CPU test with nestest.nes rom" {
+    const Tracer = @import("tracer.zig");
+
     // nestest.nes is the rom created by kevtris from NES community. It has all the available
     // CPU opcodes combinations. Correct output should be equal to this one:
     // http://www.qmtpro.com/~nes/misc/nestest.log
     // For more information please check out the docs: https://www.qmtpro.com/~nes/misc/nestest.txt
+
     const Rom = @import("rom.zig").Rom;
     var rom = try Rom.init("roms/nestest.nes");
     defer rom.deinit();
@@ -1133,6 +1128,7 @@ test "CPU test with nestest.nes rom" {
     var bus = Bus.init(&rom);
 
     var cpu = CPU.init(&bus);
+    // cpu.debug_trace = true;
     cpu.reset();
 
     // according to documentation, to run this rom in automation mode,
@@ -1144,6 +1140,7 @@ test "CPU test with nestest.nes rom" {
 
     var i: u16 = 8990; // number of cycles in the test rom
     while (i > 0) {
+        Tracer.trace(&cpu); // debug tracer
         cycles = cpu.cycle();
         i = i - 1;
     }
