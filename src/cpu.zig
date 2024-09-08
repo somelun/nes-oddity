@@ -1120,3 +1120,37 @@ pub const CPU = struct {
         self.addToRegisterA(data);
     }
 };
+
+test "CPU test with nestest.nes rom" {
+    // nestes is the rom from this place https://wiki.nesdev.com/w/index.php/Emulator_tests
+    // more information: https://www.qmtpro.com/~nes/misc/nestest.txt
+    const Rom = @import("rom.zig").Rom;
+    var rom = try Rom.init("roms/nestest.nes");
+    defer rom.deinit();
+
+    var bus = Bus.init(&rom);
+
+    var cpu = CPU.init(&bus);
+    cpu.reset();
+
+    // according to documentation, to run this rom in automation mode,
+    // program counter should be set to 0xC000
+    cpu.program_counter = 0xC000;
+
+    std.debug.print("\n", .{});
+    var cycles: u8 = cpu.cycle();
+
+    var i: u16 = 8990; // number of cycles in the test rom
+    while (i > 0) {
+        cycles = cpu.cycle();
+        i = i - 1;
+    }
+
+    // const hi: u8 = 0x2;
+    // const lo: u8 = 0x3;
+    // const result_hi: u8 = bus.read8(hi);
+    // const result_lo: u8 = bus.read8(lo);
+
+    // there is correct output to compare with
+    // http://www.qmtpro.com/~nes/misc/nestest.log
+}
