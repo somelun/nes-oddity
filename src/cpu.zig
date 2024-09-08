@@ -1147,5 +1147,7 @@ test "CPU test with nestest.nes rom" {
     const hi: u8 = 0x2;
     const lo: u8 = 0x3;
     const result: u16 = (@as(u16, bus.read8(hi)) << 8) | bus.read8(lo);
-    std.debug.print("Last error in: {}\n", .{result});
+    if (result > 0) {
+        std.debug.print("Last error in: {}\n", .{result});
+    }
 }
