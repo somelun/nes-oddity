@@ -332,7 +332,10 @@ const MaskRegister = struct {
         return (self.flags & @intFromEnum(Flags.ShowSprites)) == 1;
     }
 
-    //TODO: implement color emphasize when I understand how to do this
+    pub fn emphasize(self: *MaskRegister) void {
+        _ = self;
+        // but it should return color I suppose
+    }
 
     pub fn update(self: *MaskRegister, data: u8) void {
         self.flags = data;
