@@ -1122,8 +1122,10 @@ pub const CPU = struct {
 };
 
 test "CPU test with nestest.nes rom" {
-    // nestes is the rom from this place https://wiki.nesdev.com/w/index.php/Emulator_tests
-    // more information: https://www.qmtpro.com/~nes/misc/nestest.txt
+    // nestest.nes is the rom created by kevtris from NES community. It has all the available
+    // CPU opcodes combinations. Correct output should be equal to this one:
+    // http://www.qmtpro.com/~nes/misc/nestest.log
+    // For more information please check out the docs: https://www.qmtpro.com/~nes/misc/nestest.txt
     const Rom = @import("rom.zig").Rom;
     var rom = try Rom.init("roms/nestest.nes");
     defer rom.deinit();
@@ -1150,7 +1152,4 @@ test "CPU test with nestest.nes rom" {
     // const lo: u8 = 0x3;
     // const result_hi: u8 = bus.read8(hi);
     // const result_lo: u8 = bus.read8(lo);
-
-    // there is correct output to compare with
-    // http://www.qmtpro.com/~nes/misc/nestest.log
 }
