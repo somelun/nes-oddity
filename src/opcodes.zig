@@ -31,7 +31,7 @@ pub const Opcode = struct {
 };
 
 // https://www.masswerk.at/6502/6502_instruction_set.html
-pub fn generateOcpodes() [256]Opcode {
+pub fn generateOpcodes() [256]Opcode {
     var opcodes: [256]Opcode = undefined;
 
     // ADC: Add Memory to Accumulator with Carry

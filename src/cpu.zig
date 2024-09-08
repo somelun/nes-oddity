@@ -9,7 +9,8 @@ const AddressingMode = OpcodesAPI.AddressingMode;
 // all the games keep initial PC value at this address
 const PC_ADDRESS: u16 = 0xFFFC;
 
-pub const opcodes: [256]Opcode = OpcodesAPI.generateOcpodes();
+// array with all the available cpu opcodes
+pub const opcodes: [256]Opcode = OpcodesAPI.generateOpcodes();
 
 const StatusFlag = enum(u8) {
     C = (1 << 0), // carry
@@ -1128,7 +1129,6 @@ test "CPU test with nestest.nes rom" {
     var bus = Bus.init(&rom);
 
     var cpu = CPU.init(&bus);
-    // cpu.debug_trace = true;
     cpu.reset();
 
     // according to documentation, to run this rom in automation mode,
@@ -1139,14 +1139,13 @@ test "CPU test with nestest.nes rom" {
     var cycles: u8 = cpu.cycle();
 
     var i: u16 = 8990; // number of cycles in the test rom
-    while (i > 0) {
+    while (i > 0) : (i -= 1) {
         Tracer.trace(&cpu); // debug tracer
         cycles = cpu.cycle();
-        i = i - 1;
     }
 
-    // const hi: u8 = 0x2;
-    // const lo: u8 = 0x3;
-    // const result_hi: u8 = bus.read8(hi);
-    // const result_lo: u8 = bus.read8(lo);
+    const hi: u8 = 0x2;
+    const lo: u8 = 0x3;
+    const result: u16 = (@as(u16, bus.read8(hi)) << 8) | bus.read8(lo);
+    std.debug.print("Last error in: {}\n", .{result});
 }
