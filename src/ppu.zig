@@ -23,25 +23,23 @@
 // |                        |          | OAM DMA         0x4014  |
 // |------------------------| 0x0000   |-------------------------|
 //
-// https://wiki.nesdev.com/w/index.php/PPU_registers
-//
-//
+// More info at https://wiki.nesdev.com/w/index.php/PPU_registers
 //
 
 const Mirroring = @import("rom.zig").Mirroring;
 
 pub const PPU = struct {
-    chr_rom: []u8 = undefined,
-    palette_table: [0x20]u8 = [_]u8{0} ** 0x20,
+    chr_rom: []u8 = undefined, // visuals of the game, stored on a cartridge
+    palette_table: [0x20]u8 = [_]u8{0} ** 0x20, // palette table used atm
     vram: [0x800]u8 = [_]u8{0} ** 0x800,
     oam_data: [0x100]u8 = [_]u8{0} ** 0x100,
-
-    internal_buffer: u8 = 0,
 
     mirroring: Mirroring = undefined,
 
     addressRegister: AddressRegister = undefined,
     controllerRegister: ControllerRegister = undefined,
+
+    internal_buffer: u8 = 0,
 
     pub fn init(chr_rom: []u8, mirroring: Mirroring) PPU {
         var ppu = PPU{};
@@ -194,6 +192,7 @@ pub const PPU = struct {
 
 // PPU Controller Register (0x2000)
 const ControllerRegister = struct {
+    //
     // 7  bit  0
     // ---- ----
     // VPHB SINN
@@ -229,14 +228,13 @@ const ControllerRegister = struct {
     }
 
     pub fn nametable(self: *ControllerRegister) u16 {
-        _ = self;
-        return 0;
-        // switch (self.flags & (@intFromEnum(flags.NametableLo) ^ @intFromEnum(flags.NametableHi))) {
-        //     0 => return 0x2000,
-        //     1 => return 0x2400,
-        //     2 => return 0x2800,
-        //     3 => return 0x2c00,
-        // }
+        const nametable_flag: u8 = (@intFromEnum(Flags.NametableLo) | @intFromEnum(Flags.NametableHi));
+        switch (self.flags & nametable_flag) {
+            0 => return 0x2000,
+            1 => return 0x2400,
+            2 => return 0x2800,
+            3 => return 0x2c00,
+        }
     }
 
     pub fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
@@ -247,13 +245,6 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn spritePatternAddress(self: *ControllerRegister) u16 {
-        switch (self.flags & @intFromEnum(Flags.SpritePatternAddress)) {
-            0 => return 0,
-            1 => return 0x1000,
-        }
-    }
-
     pub fn spritePatternTableAddress(self: *ControllerRegister) u16 {
         switch (self.flags & @intFromEnum(Flags.SpritePatternTableAddress)) {
             0 => return 0,
@@ -261,10 +252,17 @@ const ControllerRegister = struct {
         }
     }
 
+    pub fn backgroundPatternAddress(self: *ControllerRegister) u16 {
+        switch (self.flags & @intFromEnum(Flags.BackgroundPatternAddress)) {
+            0 => return 0,
+            1 => return 0x1000,
+        }
+    }
+
     pub fn spriteSize(self: *ControllerRegister) u8 {
         switch (self.flags & @intFromEnum(Flags.SpritePatternTableAddress)) {
-            0 => return 0x8,
-            1 => return 0x10,
+            0 => return 8,
+            1 => return 16,
         }
     }
 
@@ -410,6 +408,10 @@ const StatusRegister = struct {
     }
 };
 
+// OAM Adress Register (0x2003)
+// OAM Data Register (0x2004)
+// Scroll Register (0x2005)
+
 // PPU Address Register (0x2006)
 const AddressRegister = struct {
     hi_byte: u8 = 0,
@@ -466,3 +468,5 @@ const AddressRegister = struct {
 
 // PPU Data Register (0x2007)
 const DataRegister = struct {};
+
+// OAM DMA Register (0x4014)
