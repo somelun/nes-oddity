@@ -48,8 +48,9 @@ const Rom = @import("rom.zig").Rom;
 const PPU = @import("ppu.zig").PPU;
 
 const RAM_BEGIN: u16 = 0x0000;
-const RAM_MIRROR_END: u16 = 0x1FFF;
-const PPU_MIRROR_END: u16 = 0x3FFF;
+const RAM_END: u16 = 0x1FFF;
+const PPU_REG_BEGIN: u16 = 0x2008;
+const PPU_REG_END: u16 = 0x3FFF;
 const PRG_ROM_BEGIN: u16 = 0x8000;
 const PRG_ROM_END: u16 = 0xFFFF;
 
@@ -59,6 +60,7 @@ pub const Bus = struct {
 
     ppu: PPU = undefined,
     rom: *Rom = undefined,
+    // cpu: *CPU = undefined,
 
     pub fn init(rom: *Rom) Bus {
         var bus: Bus = Bus{};
@@ -73,7 +75,8 @@ pub const Bus = struct {
         var data: u8 = undefined;
 
         switch (address) {
-            RAM_BEGIN...RAM_MIRROR_END => {
+            // CPU can only read from this range, also memory of 2KB is mirrored
+            RAM_BEGIN...RAM_END => {
                 data = self.wram[address & 0x07FF];
             },
 
@@ -93,7 +96,7 @@ pub const Bus = struct {
                 data = self.ppu.readData();
             },
 
-            0x2008...PPU_MIRROR_END => {
+            PPU_REG_BEGIN...PPU_REG_END => {
                 data = self.read8(address & 0x2007);
             },
 
@@ -109,7 +112,8 @@ pub const Bus = struct {
 
     pub fn write8(self: *Bus, address: u16, data: u8) void {
         switch (address) {
-            RAM_BEGIN...RAM_MIRROR_END => {
+            // CPU can only write to this range, also memory of 2KB is mirrored
+            RAM_BEGIN...RAM_END => {
                 self.wram[address & 0x07FF] = data;
             },
 
@@ -125,7 +129,7 @@ pub const Bus = struct {
                 self.ppu.writeData(data);
             },
 
-            0x2008...PPU_MIRROR_END => {
+            PPU_REG_BEGIN...PPU_REG_END => {
                 self.write8(address & 0x2007, data);
             },
 

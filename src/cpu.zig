@@ -57,7 +57,7 @@ pub const CPU = struct {
     pub fn load(self: *CPU, program_code: []const u8) void {
         self.bus.loadProgram(program_code);
 
-        // program counter stored in memory at 0xFFFC
+        // program counter is stored in memory at 0xFFFC
         self.bus.write16(PC_ADDRESS, 0xFFFC);
     }
 
