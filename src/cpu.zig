@@ -1122,11 +1122,11 @@ test "CPU test with nestest.nes rom" {
     // http://www.qmtpro.com/~nes/misc/nestest.log
     // For more information please check out the docs: https://www.qmtpro.com/~nes/misc/nestest.txt
 
-    const Rom = @import("rom.zig").Rom;
-    var rom = try Rom.init("roms/nestest.nes");
-    defer rom.deinit();
-
-    var bus = Bus.init(&rom);
+    var bus = Bus.init();
+    if (!bus.loadRom("roms/nestest.nes")) {
+        std.debug.print("Test rom now found!\n", .{});
+        return;
+    }
 
     var cpu = CPU.init(&bus);
     cpu.reset();

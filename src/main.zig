@@ -4,7 +4,7 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
-const Rom = @import("rom.zig").Rom;
+// const Rom = @import("rom.zig").Rom;
 const Bus = @import("bus.zig").Bus;
 const CPU = @import("cpu.zig").CPU;
 
@@ -37,12 +37,10 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(texture);
 
-    var rom = Rom.init("roms/snake.nes") catch {
+    var bus = Bus.init();
+    if (!bus.loadRom("roms/snake.nes")) {
         return;
-    };
-    defer rom.deinit();
-
-    var bus = Bus.init(&rom);
+    }
 
     var cpu = CPU.init(&bus);
     cpu.reset();

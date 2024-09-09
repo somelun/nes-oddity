@@ -56,19 +56,27 @@ const PRG_ROM_END: u16 = 0xFFFF;
 
 pub const Bus = struct {
     // 2KB of Work RAM available for the CPU
-    wram: [0x800]u8 = [_]u8{0} ** 0x800,
+    wram: [0x800]u8 = undefined,
 
     ppu: PPU = undefined,
-    rom: *Rom = undefined,
-    // cpu: *CPU = undefined,
+    rom: Rom = undefined,
 
-    pub fn init(rom: *Rom) Bus {
+    pub fn init() Bus {
         var bus: Bus = Bus{};
-        bus.rom = rom;
-
-        bus.ppu = PPU.init(rom.chr_rom, rom.screen_mirroring);
+        bus.ppu = PPU.init(bus.rom.chr_rom, bus.rom.screen_mirroring);
 
         return bus;
+    }
+
+    pub fn loadRom(self: *Bus, rom_path: []const u8) bool {
+        // clear the memory
+        self.wram = [_]u8{0} ** 0x800;
+
+        self.rom = Rom.init(rom_path) catch {
+            return false;
+        };
+
+        return true;
     }
 
     pub fn read8(self: *Bus, address: u16) u8 {
