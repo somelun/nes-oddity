@@ -49,8 +49,10 @@ const PPU = @import("ppu.zig").PPU;
 
 const RAM_BEGIN: u16 = 0x0000;
 const RAM_END: u16 = 0x1FFF;
+
 const PPU_REG_BEGIN: u16 = 0x2008;
 const PPU_REG_END: u16 = 0x3FFF;
+
 const PRG_ROM_BEGIN: u16 = 0x8000;
 const PRG_ROM_END: u16 = 0xFFFF;
 

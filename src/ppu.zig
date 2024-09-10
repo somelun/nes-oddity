@@ -23,10 +23,21 @@
 // |                        |          | OAM DMA         0x4014  |
 // |------------------------| 0x0000   |-------------------------|
 //
-// More info at https://wiki.nesdev.com/w/index.php/PPU_registers
+// More info about PPU register is here:
+// https://wiki.nesdev.com/w/index.php/PPU_registers
+// This is MUST READ!
 //
 
 const Mirroring = @import("rom.zig").Mirroring;
+
+const CHR_ROM_BEGIN: u16 = 0x0000;
+const CHR_ROM_END: u16 = 0x1FFF;
+
+const VRAM_BEGIN = 0x2000;
+const VRAM_END = 0x2FF;
+
+const PALETTES_BEGIN = 0x3F00;
+const PALETTES_END = 0x3FFF;
 
 pub const PPU = struct {
     chr_rom: []u8 = undefined, // visuals of the game, stored on a cartridge
@@ -52,68 +63,33 @@ pub const PPU = struct {
         return ppu;
     }
 
-    pub fn writeToAddressRegister(self: *PPU, value: u8) void {
-        self.addressRegister.update(value);
-    }
-
-    pub fn writeToControllerRegister(self: *PPU, value: u8) void {
-        self.controllerRegister.update(value);
-    }
-
     // instead of implementing PPU Data Register (0x2007) we just have this function
     pub fn readData(self: *PPU) u8 {
         const address: u16 = self.addressRegister.get();
-        self.incrementVRAMAddressRegister();
+
+        // every read operation should increment Address Register for
+        // the value from the Controller Register
+        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
 
         switch (address) {
-            0...0x1FFF => {
-                // read from chr_rom
+            // read from chr_rom
+            CHR_ROM_BEGIN...CHR_ROM_END => {
                 const result: u8 = self.internal_buffer;
                 self.internal_buffer = self.chr_rom[address];
                 return result;
             },
 
-            0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014 => {
-                // std.debug.print("Attempt to read from write-only PPU address {:x}", .{address});
+            // read from VRAM
+            VRAM_BEGIN...VRAM_END => {
+                const result: u8 = self.internal_buffer;
+                self.internal_buffer = self.vram[self.mirrorVRAMAddress(address)];
+                return result;
             },
 
-            // 0x2002 => {
-            //     self.ppu.read_status(),
-            // },
-
-            // 0x2004 => {
-            //     self.ppu.read_oam_data(),
-            // },
-
-            0x2007 => {
-                // data = self.readData();
-            },
-            // 0x2000...0x2FFF => {
-            //     // read from RAM
-            //     const result: u8 = self.internal_buffer;
-            //     self.internal_buffer = self.vram[self.mirrorVRAMAddress(address)];
-            //     return result;
-            // },
-
-            // 0x2000 => {
-            //     self.ppu.writeToControllerRegister(data);
-            // },
-            //
-            // 0x2006 => {
-            //     self.ppu.writeToAddressRegister(data);
-            // },
-            //
-            // 0x2007 => {
-            //     self.ppu.writeData(data);
-            // },
-
-            0x3000...0x3EFF => {
-                //address space 0x3000..0x3EFF is not expected to be used
-            },
-
-            // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
-            // https://wiki.nesdev.org/w/index.php/PPU_palettes
-            0x3F00...0x3FFF => {
+            // read from Palette
+            PALETTES_BEGIN...PALETTES_END => {
+                // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of 0x3F00/0x3F04/0x3F08/0x3F0C.
+                // https://wiki.nesdev.org/w/index.php/PPU_palettes
                 switch (address) {
                     0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
                         const add_mirror = address - 0x10;
@@ -126,6 +102,7 @@ pub const PPU = struct {
                 }
             },
 
+            // not expected to read from any other memory address
             else => {},
         }
 
@@ -135,19 +112,31 @@ pub const PPU = struct {
     pub fn writeData(self: *PPU, value: u8) void {
         const address: u16 = self.addressRegister.get();
         switch (address) {
-            0...0x1FFF => {
-                // std.debug.print("attempt to write to chr rom space {X}", .{address});
+            0x2000 => {
+                self.controllerRegister.update(value);
             },
 
-            0x2000...0x2FFF => {
-                self.vram[self.mirrorVRAMAddress(address)] = value;
+            0x2006 => {
+                self.addressRegister.update(value);
             },
 
-            0x3000...0x3EFF => {},
+            // 0x2000...0x2FFF => {
+            //     self.vram[self.mirrorVRAMAddress(address)] = value;
+            // },
 
-            // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
-            // https://wiki.nesdev.org/w/index.php/PPU_palettes
+            // 0x3000...0x3EFF => {},
+
+            // 0x2000 => {
+            //     self.ppu.writeToControllerRegister(data);
+            // },
+            //
+            // 0x2007 => {
+            //     self.ppu.writeData(data);
+            // },
+
             0x3F00...0x3FFF => {
+                // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
+                // https://wiki.nesdev.org/w/index.php/PPU_palettes
                 switch (address) {
                     0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
                         const add_mirror = address - 0x10;
@@ -163,10 +152,6 @@ pub const PPU = struct {
             else => {},
         }
         self.incrementVRAMAddressRegister();
-    }
-
-    fn readStatusRegister() void {
-        //
     }
 
     // Horizotal mirroring:
@@ -210,10 +195,6 @@ pub const PPU = struct {
         }
 
         return vram_index;
-    }
-
-    fn incrementVRAMAddressRegister(self: *PPU) void {
-        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
     }
 };
 
@@ -484,7 +465,7 @@ const AddressRegister = struct {
         const fetched: u16 = self.get();
         if (fetched > 0x3FFF) {
             // mirroring address down below 0x3FFF
-            self.set(fetched & 0b11111111111111);
+            self.set(fetched & 0x3FFF);
         }
 
         self.using_hi = !self.using_hi;
@@ -500,7 +481,7 @@ const AddressRegister = struct {
         const fetched: u16 = self.get();
         if (fetched > 0x3FFF) {
             // mirroring address down below 0x3FFF
-            self.set(fetched & 0b11111111111111);
+            self.set(fetched & 0x3FFF);
         }
     }
 
@@ -508,8 +489,5 @@ const AddressRegister = struct {
         self.using_hi = true;
     }
 };
-
-// PPU Data Register (0x2007)
-const DataRegister = struct {};
 
 // OAM DMA Register (0x4014)
