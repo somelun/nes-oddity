@@ -34,10 +34,13 @@ const CHR_ROM_BEGIN: u16 = 0x0000;
 const CHR_ROM_END: u16 = 0x1FFF;
 
 const VRAM_BEGIN = 0x2000;
-const VRAM_END = 0x2FF;
+const VRAM_END = 0x2FFFF;
 
 const PALETTES_BEGIN = 0x3F00;
 const PALETTES_END = 0x3FFF;
+
+const CONTROLLER = 0x2000;
+const ADDRESS = 0x2006;
 
 pub const PPU = struct {
     chr_rom: []u8 = undefined, // visuals of the game, stored on a cartridge
@@ -111,27 +114,22 @@ pub const PPU = struct {
 
     pub fn writeData(self: *PPU, value: u8) void {
         const address: u16 = self.addressRegister.get();
+
         switch (address) {
-            0x2000 => {
+            CONTROLLER => {
                 self.controllerRegister.update(value);
             },
 
-            0x2006 => {
+            ADDRESS => {
                 self.addressRegister.update(value);
+            },
+
+            0x2007 => {
+                self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
             },
 
             // 0x2000...0x2FFF => {
             //     self.vram[self.mirrorVRAMAddress(address)] = value;
-            // },
-
-            // 0x3000...0x3EFF => {},
-
-            // 0x2000 => {
-            //     self.ppu.writeToControllerRegister(data);
-            // },
-            //
-            // 0x2007 => {
-            //     self.ppu.writeData(data);
             // },
 
             0x3F00...0x3FFF => {
@@ -151,18 +149,18 @@ pub const PPU = struct {
 
             else => {},
         }
-        self.incrementVRAMAddressRegister();
     }
 
-    // Horizotal mirroring:
-    // [A][a]
-    // [B][b]
-    //
-    // Vertical mirroring:
-    // [A][B]
-    // [a][b]
     fn mirrorVRAMAddress(self: *PPU, address: u16) u16 {
-        const mirrored_vram: u16 = address & 0b10111111111111; // mirror down 0x3000-0x3EFF to 0x2000 - 0x2EFF
+        // Horizotal mirroring:
+        // [A][a]
+        // [B][b]
+        //
+        // Vertical mirroring:
+        // [A][B]
+        // [a][b]
+
+        const mirrored_vram: u16 = address & 0x2FFF; // mirror down [0x3000-0x3EFF] to [0x2000 - 0x2EFF]
         const vram_index: u16 = mirrored_vram - 0x2000; // to vram vector
         const name_table: u16 = vram_index / 0x400; // to the name table index
 
