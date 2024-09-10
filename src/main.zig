@@ -4,7 +4,6 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
 });
 
-// const Rom = @import("rom.zig").Rom;
 const Bus = @import("bus.zig").Bus;
 const CPU = @import("cpu.zig").CPU;
 

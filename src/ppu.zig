@@ -60,6 +60,78 @@ pub const PPU = struct {
         self.controllerRegister.update(value);
     }
 
+    // instead of implementing PPU Data Register (0x2007) we just have this function
+    pub fn readData(self: *PPU) u8 {
+        const address: u16 = self.addressRegister.get();
+        self.incrementVRAMAddressRegister();
+
+        switch (address) {
+            0...0x1FFF => {
+                // read from chr_rom
+                const result: u8 = self.internal_buffer;
+                self.internal_buffer = self.chr_rom[address];
+                return result;
+            },
+
+            0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014 => {
+                // std.debug.print("Attempt to read from write-only PPU address {:x}", .{address});
+            },
+
+            // 0x2002 => {
+            //     self.ppu.read_status(),
+            // },
+
+            // 0x2004 => {
+            //     self.ppu.read_oam_data(),
+            // },
+
+            0x2007 => {
+                // data = self.readData();
+            },
+            // 0x2000...0x2FFF => {
+            //     // read from RAM
+            //     const result: u8 = self.internal_buffer;
+            //     self.internal_buffer = self.vram[self.mirrorVRAMAddress(address)];
+            //     return result;
+            // },
+
+            // 0x2000 => {
+            //     self.ppu.writeToControllerRegister(data);
+            // },
+            //
+            // 0x2006 => {
+            //     self.ppu.writeToAddressRegister(data);
+            // },
+            //
+            // 0x2007 => {
+            //     self.ppu.writeData(data);
+            // },
+
+            0x3000...0x3EFF => {
+                //address space 0x3000..0x3EFF is not expected to be used
+            },
+
+            // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
+            // https://wiki.nesdev.org/w/index.php/PPU_palettes
+            0x3F00...0x3FFF => {
+                switch (address) {
+                    0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
+                        const add_mirror = address - 0x10;
+                        return self.palette_table[add_mirror - 0x3F00];
+                    },
+
+                    else => {
+                        return self.palette_table[address - 0x3F00];
+                    },
+                }
+            },
+
+            else => {},
+        }
+
+        return 0;
+    }
+
     pub fn writeData(self: *PPU, value: u8) void {
         const address: u16 = self.addressRegister.get();
         switch (address) {
@@ -91,51 +163,6 @@ pub const PPU = struct {
             else => {},
         }
         self.incrementVRAMAddressRegister();
-    }
-
-    // instead of implementing PPU Data Register (0x2007) we just have this function
-    pub fn readData(self: *PPU) u8 {
-        const address: u16 = self.addressRegister.get();
-        self.incrementVRAMAddressRegister();
-
-        switch (address) {
-            0...0x1FFF => {
-                // read from chr_rom
-                const result: u8 = self.internal_buffer;
-                self.internal_buffer = self.chr_rom[address];
-                return result;
-            },
-
-            0x2000...0x2FFF => {
-                // read from RAM
-                const result: u8 = self.internal_buffer;
-                self.internal_buffer = self.vram[self.mirrorVRAMAddress(address)];
-                return result;
-            },
-
-            0x3000...0x3EFF => {
-                //address space 0x3000..0x3EFF is not expected to be used
-            },
-
-            // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
-            // https://wiki.nesdev.org/w/index.php/PPU_palettes
-            0x3F00...0x3FFF => {
-                switch (address) {
-                    0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
-                        const add_mirror = address - 0x10;
-                        return self.palette_table[add_mirror - 0x3F00];
-                    },
-
-                    else => {
-                        return self.palette_table[address - 0x3F00];
-                    },
-                }
-            },
-
-            else => {},
-        }
-
-        return 0;
     }
 
     fn readStatusRegister() void {

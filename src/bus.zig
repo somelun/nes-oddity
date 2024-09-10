@@ -61,6 +61,8 @@ pub const Bus = struct {
     ppu: PPU = undefined,
     rom: Rom = undefined,
 
+    var tick_counter: u32 = 0;
+
     pub fn init() Bus {
         var bus: Bus = Bus{};
         bus.ppu = PPU.init(bus.rom.chr_rom, bus.rom.screen_mirroring);
@@ -79,6 +81,14 @@ pub const Bus = struct {
         return true;
     }
 
+    pub fn tick(self: *Bus) void {
+        self.tick_counter += 1;
+    }
+
+    pub fn reset(self: *Bus) void {
+        self.tick_counter = 0;
+    }
+
     pub fn read8(self: *Bus, address: u16) u8 {
         var data: u8 = undefined;
 
@@ -88,26 +98,12 @@ pub const Bus = struct {
                 data = self.wram[address & 0x07FF];
             },
 
-            0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014 => {
-                // std.debug.print("Attempt to read from write-only PPU address {:x}", .{address});
-            },
-
-            // 0x2002 => {
-            //     self.ppu.read_status(),
-            // },
-
-            // 0x2004 => {
-            //     self.ppu.read_oam_data(),
-            // },
-
-            0x2007 => {
-                data = self.ppu.readData();
-            },
-
+            // PPU memory range also with mirroring
             PPU_REG_BEGIN...PPU_REG_END => {
                 data = self.read8(address & 0x2007);
             },
 
+            // ROM memory range
             PRG_ROM_BEGIN...PRG_ROM_END => {
                 data = self.readPrgRom(address);
             },
@@ -125,23 +121,9 @@ pub const Bus = struct {
                 self.wram[address & 0x07FF] = data;
             },
 
-            0x2000 => {
-                self.ppu.writeToControllerRegister(data);
-            },
-
-            0x2006 => {
-                self.ppu.writeToAddressRegister(data);
-            },
-
-            0x2007 => {
-                self.ppu.writeData(data);
-            },
-
             PPU_REG_BEGIN...PPU_REG_END => {
                 self.write8(address & 0x2007, data);
             },
-
-            0x8000...0xFFFF => {},
 
             else => {},
         }
@@ -162,7 +144,7 @@ pub const Bus = struct {
         self.write8(address + 1, hi);
     }
 
-    pub fn loadProgram(self: *Bus, program_code: []const u8) void {
+    fn loadProgram(self: *Bus, program_code: []const u8) void {
         const program_len = program_code.len;
         mem.copy(u8, self.wram[0x0600 .. 0x0600 + program_len], program_code[0..program_len]);
     }
