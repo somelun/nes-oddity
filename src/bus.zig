@@ -67,7 +67,7 @@ pub const Bus = struct {
 
     pub fn init() Bus {
         var bus: Bus = Bus{};
-        bus.ppu = PPU.init(bus.rom.chr_rom, bus.rom.screen_mirroring);
+        bus.ppu = PPU.init();
 
         return bus;
     }
@@ -79,6 +79,7 @@ pub const Bus = struct {
         self.rom = Rom.init(rom_path) catch {
             return false;
         };
+        self.ppu.updateRomData(self.rom.chr_rom, self.rom.screen_mirroring);
 
         return true;
     }
@@ -100,9 +101,14 @@ pub const Bus = struct {
                 data = self.wram[address & 0x07FF];
             },
 
+            // read from PPU Data register
+            0x2007 => {
+                data = self.ppu.readData(address);
+            },
+
             // PPU memory range also with mirroring
             PPU_REG_BEGIN...PPU_REG_END => {
-                data = self.read8(address & 0x2007);
+                data = self.ppu.readData(address & 0x2007);
             },
 
             // ROM memory range
@@ -123,7 +129,13 @@ pub const Bus = struct {
                 self.wram[address & 0x07FF] = data;
             },
 
+            // Controll, Address, Data PPu registers
+            0x2000, 0x2006, 0x2007 => {
+                self.ppu.writeData(data);
+            },
+
             PPU_REG_BEGIN...PPU_REG_END => {
+                // for now calling self with mirrored address
                 self.write8(address & 0x2007, data);
             },
 

@@ -55,15 +55,18 @@ pub const PPU = struct {
 
     internal_buffer: u8 = 0,
 
-    pub fn init(chr_rom: []u8, mirroring: Mirroring) PPU {
+    pub fn init() PPU {
         var ppu = PPU{};
 
-        ppu.chr_rom = chr_rom;
-        ppu.mirroring = mirroring;
         ppu.addressRegister = AddressRegister.init();
         ppu.controllerRegister = ControllerRegister.init();
 
         return ppu;
+    }
+
+    pub fn updateRomData(self: *PPU, chr_rom: []u8, mirroring: Mirroring) void {
+        self.chr_rom = chr_rom;
+        self.mirroring = mirroring;
     }
 
     // instead of implementing PPU Data Register (0x2007) we just have this function
@@ -128,9 +131,9 @@ pub const PPU = struct {
                 self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
             },
 
-            // 0x2000...0x2FFF => {
-            //     self.vram[self.mirrorVRAMAddress(address)] = value;
-            // },
+            0x2000...0x2FFF => {
+                self.vram[self.mirrorVRAMAddress(address)] = value;
+            },
 
             0x3F00...0x3FFF => {
                 // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
