@@ -44,10 +44,12 @@ pub const PPU = struct {
     palette_table: [0x20]u8 = [_]u8{0} ** 0x20, // palette table used atm
     vram: [0x800]u8 = [_]u8{0} ** 0x800,
     oam_data: [0x100]u8 = [_]u8{0} ** 0x100,
+    oam_address: u8 = 0,
 
     mirroring: Mirroring = undefined,
 
     controllerRegister: ControllerRegister = undefined,
+    maskRegister: MaskRegister = undefined,
     statusRegister: StatusRegister = undefined,
     scrollRegister: ScrollRegister = undefined,
     addressRegister: AddressRegister = undefined,
@@ -58,6 +60,7 @@ pub const PPU = struct {
         var ppu = PPU{};
 
         ppu.controllerRegister = ControllerRegister.init();
+        ppu.maskRegister = MaskRegister.init();
         ppu.statusRegister = StatusRegister.init();
         ppu.scrollRegister = ScrollRegister.init();
         ppu.addressRegister = AddressRegister.init();
@@ -71,24 +74,24 @@ pub const PPU = struct {
     }
 
     pub fn read(self: *PPU, address: u16) u8 {
+        var result: u8 = 0;
         switch (address) {
             0x2002 => {
                 // self.scroll.reset_latch();
-                const result = self.statusRegister.get();
+                result = self.statusRegister.get();
                 self.statusRegister.clearVBlankStarted();
                 self.addressRegister.reset_latch();
                 self.scrollRegister.reset_latch();
-                return result;
             },
 
             0x2004 => {
-                // TODO: read OAM data
+                result = self.oam_data[self.oam_address];
             },
 
             else => {},
         }
 
-        return 0;
+        return result;
     }
 
     pub fn readData(self: *PPU) u8 {
@@ -137,15 +140,38 @@ pub const PPU = struct {
     }
 
     pub fn write(self: *PPU, address: u16, data: u8) void {
-        _ = self;
-        _ = data;
         switch (address) {
-            0x2000 => {},
-            0x2001 => {},
-            0x2003 => {},
-            0x2004 => {},
-            0x2005 => {},
-            0x2006 => {},
+            // write to controll register
+            0x2000 => {
+                self.controllerRegister.update(data);
+            },
+
+            // write to mask register
+            0x2001 => {
+                self.maskRegister.update(data);
+            },
+
+            // write to OAM address
+            0x2003 => {
+                self.oam_address = data;
+            },
+
+            // write to OAM data
+            0x2004 => {
+                self.oam_data[self.oam_address] = data;
+                self.oam_address +%= 1;
+            },
+
+            // write to scroll regisger
+            0x2005 => {
+                self.scrollRegister.update(data);
+            },
+
+            // write to address register
+            0x2006 => {
+                self.addressRegister.update(data);
+            },
+
             else => {},
         }
     }
@@ -484,9 +510,6 @@ const StatusRegister = struct {
     }
 };
 
-// OAM Adress Register (0x2003)
-// OAM Data Register (0x2004)
-
 // Scroll Register (0x2005)
 const ScrollRegister = struct {
     scroll_x: u8 = 0,
@@ -497,7 +520,7 @@ const ScrollRegister = struct {
         return ScrollRegister{};
     }
 
-    pub fn write(self: *ScrollRegister, data: u8) void {
+    pub fn update(self: *ScrollRegister, data: u8) void {
         if (self.latch) {
             self.scroll_x = data;
         } else {
