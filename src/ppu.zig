@@ -47,16 +47,20 @@ pub const PPU = struct {
 
     mirroring: Mirroring = undefined,
 
-    addressRegister: AddressRegister = undefined,
     controllerRegister: ControllerRegister = undefined,
+    statusRegister: StatusRegister = undefined,
+    scrollRegister: ScrollRegister = undefined,
+    addressRegister: AddressRegister = undefined,
 
     internal_buffer: u8 = 0,
 
     pub fn init() PPU {
         var ppu = PPU{};
 
-        ppu.addressRegister = AddressRegister.init();
         ppu.controllerRegister = ControllerRegister.init();
+        ppu.statusRegister = StatusRegister.init();
+        ppu.scrollRegister = ScrollRegister.init();
+        ppu.addressRegister = AddressRegister.init();
 
         return ppu;
     }
@@ -67,10 +71,14 @@ pub const PPU = struct {
     }
 
     pub fn read(self: *PPU, address: u16) u8 {
-        _ = self;
         switch (address) {
             0x2002 => {
-                // TODO: read status
+                // self.scroll.reset_latch();
+                const result = self.statusRegister.get();
+                self.statusRegister.clearVBlankStarted();
+                self.addressRegister.reset_latch();
+                self.scrollRegister.reset_latch();
+                return result;
             },
 
             0x2004 => {
@@ -126,6 +134,20 @@ pub const PPU = struct {
         }
 
         return 0;
+    }
+
+    pub fn write(self: *PPU, address: u16, data: u8) void {
+        _ = self;
+        _ = data;
+        switch (address) {
+            0x2000 => {},
+            0x2001 => {},
+            0x2003 => {},
+            0x2004 => {},
+            0x2005 => {},
+            0x2006 => {},
+            else => {},
+        }
     }
 
     pub fn writeData(self: *PPU, value: u8) void {
@@ -429,6 +451,10 @@ const StatusRegister = struct {
         return StatusRegister{};
     }
 
+    pub fn get(self: *StatusRegister) u8 {
+        return self.flags;
+    }
+
     pub fn setSpriteOverflow(self: *StatusRegister) void {
         self.flags = self.flags & @intFromEnum(Flags.SpriteOverflow);
     }
@@ -469,6 +495,20 @@ const ScrollRegister = struct {
 
     pub fn init() ScrollRegister {
         return ScrollRegister{};
+    }
+
+    pub fn write(self: *ScrollRegister, data: u8) void {
+        if (self.latch) {
+            self.scroll_x = data;
+        } else {
+            self.scroll_y = data;
+        }
+
+        self.latch = !self.latch;
+    }
+
+    pub fn reset_latch(self: *ScrollRegister) void {
+        self.latch = false;
     }
 };
 

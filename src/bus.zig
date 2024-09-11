@@ -137,8 +137,17 @@ pub const Bus = struct {
                 self.wram[address & 0x07FF] = data;
             },
 
-            // Controll, Address, Data PPu registers
-            0x2000, 0x2006, 0x2007 => {
+            0x2002 => {
+                // status register, read only
+            },
+
+            // Controll, Address
+            0x2000, 0x2001, 0x2003, 0x2004, 0x2005, 0x2006 => {
+                self.ppu.write(address, data);
+            },
+
+            // PPU Data Register
+            0x2007 => {
                 self.ppu.writeData(data);
             },
 
