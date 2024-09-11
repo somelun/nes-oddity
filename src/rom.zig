@@ -66,7 +66,9 @@ pub const Mirroring = enum { Vertical, Horizontal, FourScreen };
 pub const Rom = struct {
     prg_rom: []u8 = undefined,
     chr_rom: []u8 = undefined,
-    mapper: u8 = 0, // TODO: implement mapper
+    mapper: u8 = 0,
+    prg_rom_banks_number: u16 = 0,
+    chr_rom_banks_number: u16 = 0,
     screen_mirroring: Mirroring,
 
     pub fn init(path: []const u8) !Rom {
@@ -102,6 +104,7 @@ pub const Rom = struct {
         allocator.free(self.chr_rom);
     }
 
+    // More info about the structure https://www.nesdev.org/wiki/INES
     fn load(self: *Rom, path: []const u8) !void {
         const cwd = std.fs.cwd();
         const file = cwd.openFile(path, std.fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
@@ -121,10 +124,10 @@ pub const Rom = struct {
         }
 
         // reading all from the header
-        const prg_rom_banks_number: u16 = header[4]; // every bank is 16kB
-        const chr_rom_banks_number: u16 = header[5]; // every bank is 8kB
+        self.prg_rom_banks_number = header[4]; // every bank is 16kB
+        self.chr_rom_banks_number = header[5]; // every bank is 8kB
         const control_byte_1: u8 = header[6];
-        // const control_byte_2: u8 = header[7];
+        const control_byte_2: u8 = header[7];
         // const prg_ram_size: u8 = header[8]; // in 8kB units
 
         // parsing control_byte_1
@@ -133,7 +136,7 @@ pub const Rom = struct {
         const trainer: bool = control_byte_1 & 0b100 == 0b100;
         const four_screen: bool = control_byte_1 & 0b1000 == 0b1000;
 
-        // const mapper_type: u8 = ((control_byte_2 & 0b11110000) | (control_byte_1 & 0b11110000 >> 4));
+        self.mapper = ((control_byte_2 & 0b11110000) | (control_byte_1 & 0b11110000 >> 4));
 
         if (four_screen) {
             self.screen_mirroring = Mirroring.FourScreen;
@@ -141,8 +144,8 @@ pub const Rom = struct {
             self.screen_mirroring = if (vertical_mirroring) Mirroring.Vertical else Mirroring.Horizontal;
         }
 
-        const prg_rom_size: u16 = prg_rom_banks_number * 16 * 1024;
-        const chr_rom_size: u16 = chr_rom_banks_number * 8 * 1024;
+        const prg_rom_size: u16 = self.prg_rom_banks_number * 16 * 1024;
+        const chr_rom_size: u16 = self.chr_rom_banks_number * 8 * 1024;
 
         const prg_rom_start: u16 = if (trainer) 16 + 512 else 16;
         // const chr_rom_start: u16 = prg_rom_start + prg_rom_start;

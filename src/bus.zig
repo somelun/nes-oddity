@@ -103,12 +103,13 @@ pub const Bus = struct {
 
             // read from PPU Data register
             0x2007 => {
-                data = self.ppu.readData(address);
+                data = self.ppu.readData();
             },
 
             // PPU memory range also with mirroring
             PPU_REG_BEGIN...PPU_REG_END => {
-                data = self.ppu.readData(address & 0x2007);
+                data = self.ppu.readData();
+                // data = self.ppu.readData(address & 0x2007);
             },
 
             // ROM memory range

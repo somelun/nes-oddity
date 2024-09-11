@@ -34,7 +34,7 @@ const CHR_ROM_BEGIN: u16 = 0x0000;
 const CHR_ROM_END: u16 = 0x1FFF;
 
 const VRAM_BEGIN = 0x2000;
-const VRAM_END = 0x2FFFF;
+const VRAM_END = 0x2FFF;
 
 const PALETTES_BEGIN = 0x3F00;
 const PALETTES_END = 0x3FFF;
@@ -69,7 +69,6 @@ pub const PPU = struct {
         self.mirroring = mirroring;
     }
 
-    // instead of implementing PPU Data Register (0x2007) we just have this function
     pub fn readData(self: *PPU) u8 {
         const address: u16 = self.addressRegister.get();
 
@@ -119,20 +118,25 @@ pub const PPU = struct {
         const address: u16 = self.addressRegister.get();
 
         switch (address) {
-            CONTROLLER => {
-                self.controllerRegister.update(value);
-            },
-
-            ADDRESS => {
-                self.addressRegister.update(value);
-            },
-
-            0x2007 => {
-                self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
-            },
-
+            // PPU range
             0x2000...0x2FFF => {
-                self.vram[self.mirrorVRAMAddress(address)] = value;
+                switch (address) {
+                    CONTROLLER => {
+                        self.controllerRegister.update(value);
+                    },
+
+                    ADDRESS => {
+                        self.addressRegister.update(value);
+                    },
+
+                    0x2007 => {
+                        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
+                    },
+
+                    else => {
+                        self.vram[self.mirrorVRAMAddress(address)] = value;
+                    },
+                }
             },
 
             0x3F00...0x3FFF => {
@@ -435,7 +439,17 @@ const StatusRegister = struct {
 
 // OAM Adress Register (0x2003)
 // OAM Data Register (0x2004)
+
 // Scroll Register (0x2005)
+const ScrollRegister = struct {
+    scroll_x: u8 = 0,
+    scroll_y: u8 = 0,
+    latch: bool = false,
+
+    pub fn init() ScrollRegister {
+        return ScrollRegister{};
+    }
+};
 
 // PPU Address Register (0x2006)
 const AddressRegister = struct {

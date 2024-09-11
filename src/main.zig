@@ -37,7 +37,7 @@ pub fn main() anyerror!void {
     defer c.SDL_DestroyTexture(texture);
 
     var bus = Bus.init();
-    if (!bus.loadRom("roms/snake.nes")) {
+    if (!bus.loadRom("roms/donkey.nes")) {
         return;
     }
 
