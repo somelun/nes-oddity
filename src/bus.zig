@@ -101,6 +101,14 @@ pub const Bus = struct {
                 data = self.wram[address & 0x07FF];
             },
 
+            0x2000, 0x2001, 0x2003, 0x2005, 0x2006, 0x4014 => {
+                // write-only PPU region
+            },
+
+            0x2002, 0x2004 => {
+                data = self.ppu.read(address);
+            },
+
             // read from PPU Data register
             0x2007 => {
                 data = self.ppu.readData();
@@ -108,8 +116,7 @@ pub const Bus = struct {
 
             // PPU memory range also with mirroring
             PPU_REG_BEGIN...PPU_REG_END => {
-                data = self.ppu.readData();
-                // data = self.ppu.readData(address & 0x2007);
+                data = self.read8(address & 0x2007);
             },
 
             // ROM memory range

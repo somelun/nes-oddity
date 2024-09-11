@@ -39,9 +39,6 @@ const VRAM_END = 0x2FFF;
 const PALETTES_BEGIN = 0x3F00;
 const PALETTES_END = 0x3FFF;
 
-const CONTROLLER = 0x2000;
-const ADDRESS = 0x2006;
-
 pub const PPU = struct {
     chr_rom: []u8 = undefined, // visuals of the game, stored on a cartridge
     palette_table: [0x20]u8 = [_]u8{0} ** 0x20, // palette table used atm
@@ -69,29 +66,46 @@ pub const PPU = struct {
         self.mirroring = mirroring;
     }
 
+    pub fn read(self: *PPU, address: u16) u8 {
+        _ = self;
+        switch (address) {
+            0x2002 => {
+                // TODO: read status
+            },
+
+            0x2004 => {
+                // TODO: read OAM data
+            },
+
+            else => {},
+        }
+
+        return 0;
+    }
+
     pub fn readData(self: *PPU) u8 {
         const address: u16 = self.addressRegister.get();
 
-        // every read operation should increment Address Register for
-        // the value from the Controller Register
+        // every read operation from the Data Register should increment
+        // Address Register for the value from the Controller Register
         self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
 
         switch (address) {
-            // read from chr_rom
+            // read from CHAR ROM range
             CHR_ROM_BEGIN...CHR_ROM_END => {
                 const result: u8 = self.internal_buffer;
                 self.internal_buffer = self.chr_rom[address];
                 return result;
             },
 
-            // read from VRAM
+            // read from PPU VRAM
             VRAM_BEGIN...VRAM_END => {
                 const result: u8 = self.internal_buffer;
                 self.internal_buffer = self.vram[self.mirrorVRAMAddress(address)];
                 return result;
             },
 
-            // read from Palette
+            // read from Palette Range
             PALETTES_BEGIN...PALETTES_END => {
                 // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of 0x3F00/0x3F04/0x3F08/0x3F0C.
                 // https://wiki.nesdev.org/w/index.php/PPU_palettes
@@ -118,17 +132,20 @@ pub const PPU = struct {
         const address: u16 = self.addressRegister.get();
 
         switch (address) {
-            // PPU range
+            // PPU VRAM Range
             0x2000...0x2FFF => {
                 switch (address) {
-                    CONTROLLER => {
+                    // Controller Register
+                    0x2000 => {
                         self.controllerRegister.update(value);
                     },
 
-                    ADDRESS => {
+                    // Address Register
+                    0x2006 => {
                         self.addressRegister.update(value);
                     },
 
+                    // Data Register
                     0x2007 => {
                         self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
                     },
@@ -139,7 +156,7 @@ pub const PPU = struct {
                 }
             },
 
-            0x3F00...0x3FFF => {
+            PALETTES_BEGIN...PALETTES_END => {
                 // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
                 // https://wiki.nesdev.org/w/index.php/PPU_palettes
                 switch (address) {
@@ -434,6 +451,10 @@ const StatusRegister = struct {
 
     pub fn isVBlankStarted(self: *StatusRegister) bool {
         return (self.flags & @intFromEnum(Flags.VBlankStarted)) == 1;
+    }
+
+    pub fn clearVBlankStarted(self: *StatusRegister) void {
+        self.flags = self.flags & ~@intFromEnum(Flags.VBlankStarted);
     }
 };
 
