@@ -105,6 +105,7 @@ pub const Bus = struct {
                 // write-only PPU region
             },
 
+            // read from ppu status register, ppu oam data
             0x2002, 0x2004 => {
                 data = self.ppu.read(address);
             },

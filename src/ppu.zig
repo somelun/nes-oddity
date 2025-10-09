@@ -76,14 +76,15 @@ pub const PPU = struct {
     pub fn read(self: *PPU, address: u16) u8 {
         var result: u8 = 0;
         switch (address) {
+            // read status register
             0x2002 => {
-                // self.scroll.reset_latch();
                 result = self.statusRegister.get();
                 self.statusRegister.clearVBlankStarted();
                 self.addressRegister.reset_latch();
                 self.scrollRegister.reset_latch();
             },
 
+            // read oam data
             0x2004 => {
                 result = self.oam_data[self.oam_address];
             },

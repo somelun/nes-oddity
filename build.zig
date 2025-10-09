@@ -6,16 +6,20 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "nes-oddity",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
-    exe.addLibraryPath(b.path("./lib"));
-    exe.linkSystemLibrary("SDL2");
+    // exe.addLibraryPath(b.path("./lib"));
+    // exe.linkSystemLibrary("SDL3");
+    //
+    exe.linkLibC();
 
     exe.addIncludePath(.{ .cwd_relative = ("/opt/homebrew/include") });
+    exe.addLibraryPath(.{ .cwd_relative = ("/opt/homebrew/lib") });
 
     b.installArtifact(exe);
 

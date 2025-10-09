@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const c = @cImport({
-    @cInclude("SDL2/SDL.h");
+    @cInclude("SDL3/SDL.h");
 });
 
 const Bus = @import("bus.zig").Bus;
@@ -10,34 +10,34 @@ const CPU = @import("cpu.zig").CPU;
 const Color = struct { r: u8 = 0, g: u8 = 0, b: u8 = 0 };
 
 pub fn main() anyerror!void {
-    c.srand(@intCast(c.time(0)));
+    c.SDL_srand(@intCast(c.time(0)));
 
-    if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
+    if (c.SDL_Init(c.SDL_INIT_VIDEO)) {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     }
     defer c.SDL_Quit();
 
-    const window = c.SDL_CreateWindow("nes oddity", c.SDL_WINDOWPOS_UNDEFINED, c.SDL_WINDOWPOS_UNDEFINED, 320, 320, c.SDL_WINDOW_OPENGL) orelse {
+    const window = c.SDL_CreateWindow("nes oddity", 320, 320, c.SDL_WINDOW_OPENGL) orelse {
         c.SDL_Log("Unable to create window: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
     defer c.SDL_DestroyWindow(window);
 
-    const renderer = c.SDL_CreateRenderer(window, -1, 0) orelse {
+    const renderer = c.SDL_CreateRenderer(window, 0) orelse {
         c.SDL_Log("Unable to create renderer: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     };
     defer c.SDL_DestroyRenderer(renderer);
 
-    const texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_RGB888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
+    const texture = c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_XRGB8888, c.SDL_TEXTUREACCESS_STREAMING, 32, 32) orelse {
         std.debug.print("Cannot create texture: {s}", .{c.SDL_GetError()});
         return error.SDLInitializationFailed;
     };
     defer c.SDL_DestroyTexture(texture);
 
     var bus = Bus.init();
-    if (!bus.loadRom("roms/snake.nes")) {
+    if (!bus.loadRom("roms/nestest.nes")) {
         return;
     }
 
@@ -54,32 +54,32 @@ pub fn main() anyerror!void {
         var event: c.SDL_Event = undefined;
 
         // TODO: someday switch to https://stackoverflow.com/questions/11699183/what-is-the-best-way-to-read-input-from-keyboard-using-sdl
-        while (c.SDL_PollEvent(&event) != 0) {
+        while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
-                c.SDL_KEYUP, c.SDL_KEYDOWN => {
-                    const down = event.type == c.SDL_KEYDOWN;
+                c.SDL_EVENT_KEY_UP, c.SDL_EVENT_KEY_DOWN => {
+                    const down = event.type == c.SDL_EVENT_KEY_DOWN;
 
-                    if (event.key.keysym.sym == c.SDLK_w and down) {
+                    if (event.key.key == c.SDLK_W and down) {
                         bus.write8(0xFF, 0x77);
                     }
-                    if (event.key.keysym.sym == c.SDLK_s and down) {
+                    if (event.key.key == c.SDLK_S and down) {
                         bus.write8(0xFF, 0x73);
                     }
-                    if (event.key.keysym.sym == c.SDLK_a and down) {
+                    if (event.key.key == c.SDLK_A and down) {
                         bus.write8(0xFF, 0x61);
                     }
-                    if (event.key.keysym.sym == c.SDLK_d and down) {
+                    if (event.key.key == c.SDLK_D and down) {
                         bus.write8(0xFF, 0x64);
                     }
                 },
-                c.SDL_QUIT => {
+                c.SDL_EVENT_QUIT => {
                     quit = true;
                 },
                 else => {},
             }
         }
         // input requires random number at 0xFE
-        bus.write8(0xFE, @intCast(@rem(c.rand(), 16) + 1));
+        bus.write8(0xFE, @intCast(c.SDL_rand(15) + 1));
 
         // TODO: count cycles and remove hardcoded count
         _ = cpu.cycle();
@@ -92,11 +92,12 @@ pub fn main() anyerror!void {
             count = 30;
 
             _ = c.SDL_RenderClear(renderer);
-            _ = c.SDL_RenderCopy(renderer, texture, null, null);
-            c.SDL_RenderPresent(renderer);
+            _ = c.SDL_RenderTexture(renderer, texture, null, null);
+            _ = c.SDL_RenderPresent(renderer);
         }
 
-        std.time.sleep(16 * 1000 * 10);
+        c.SDL_Delay(16 * 1000 * 10);
+        // std.time.sleep(16 * 1000 * 10);
 
         // TODO: NES cpu works with 1.7 MHz, every game runs at 60 fps
         // that is what required to implement, I'll do this after implementing Bus and PPU

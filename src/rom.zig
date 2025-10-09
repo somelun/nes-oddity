@@ -75,7 +75,10 @@ pub const Rom = struct {
         var rom: Rom = undefined;
 
         rom.load(path) catch |err| {
-            const stdout = std.io.getStdOut().writer();
+            var stdout_buffer: [1024]u8 = undefined;
+            var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+            const stdout = &stdout_writer.interface;
+
             switch (err) {
                 error.FileNotFound => {
                     try stdout.print("File does not exist: {s}\n", .{path});
@@ -93,6 +96,8 @@ pub const Rom = struct {
                     try stdout.print("Unknown error reading file: {s}\n", .{path});
                 },
             }
+
+            try stdout.flush();
         };
 
         return rom;
