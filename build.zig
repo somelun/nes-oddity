@@ -10,33 +10,32 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true,
         }),
     });
 
-    // exe.addLibraryPath(b.path("./lib"));
-    // exe.linkSystemLibrary("SDL3");
-    //
-    exe.linkLibC();
+    const mod = exe.root_module;
 
-    exe.addIncludePath(.{ .cwd_relative = ("/opt/homebrew/include") });
-    exe.addLibraryPath(.{ .cwd_relative = ("/opt/homebrew/lib") });
+    mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+    mod.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+
+    mod.linkSystemLibrary("SDL3", .{});
+    mod.linkSystemLibrary("iconv", .{});
+    mod.linkFramework("AppKit", .{});
+    mod.linkFramework("AudioToolbox", .{});
+    mod.linkFramework("Carbon", .{});
+    mod.linkFramework("Cocoa", .{});
+    mod.linkFramework("CoreAudio", .{});
+    mod.linkFramework("CoreFoundation", .{});
+    mod.linkFramework("CoreGraphics", .{});
+    mod.linkFramework("CoreHaptics", .{});
+    mod.linkFramework("CoreVideo", .{});
+    mod.linkFramework("ForceFeedback", .{});
+    mod.linkFramework("GameController", .{});
+    mod.linkFramework("IOKit", .{});
+    mod.linkFramework("Metal", .{});
 
     b.installArtifact(exe);
-
-    exe.linkSystemLibrary("iconv");
-    exe.linkFramework("AppKit");
-    exe.linkFramework("AudioToolbox");
-    exe.linkFramework("Carbon");
-    exe.linkFramework("Cocoa");
-    exe.linkFramework("CoreAudio");
-    exe.linkFramework("CoreFoundation");
-    exe.linkFramework("CoreGraphics");
-    exe.linkFramework("CoreHaptics");
-    exe.linkFramework("CoreVideo");
-    exe.linkFramework("ForceFeedback");
-    exe.linkFramework("GameController");
-    exe.linkFramework("IOKit");
-    exe.linkFramework("Metal");
 
     const run_cmd = b.addRunArtifact(exe);
 

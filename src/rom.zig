@@ -75,29 +75,13 @@ pub const Rom = struct {
         var rom: Rom = undefined;
 
         rom.load(path) catch |err| {
-            var stdout_buffer: [1024]u8 = undefined;
-            var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
-            const stdout = &stdout_writer.interface;
-
             switch (err) {
-                error.FileNotFound => {
-                    try stdout.print("File does not exist: {s}\n", .{path});
-                },
-                ROMLoadError.UnsupportedMapper => {
-                    try stdout.print("Unsupported mapper: {s}\n", .{path});
-                },
-                ROMLoadError.UnsupportedFormat => {
-                    try stdout.print("Unsupported format: {s}\n", .{path});
-                },
-                ROMLoadError.InvalidFormat => {
-                    try stdout.print("Invalid format: {s}\n", .{path});
-                },
-                else => {
-                    try stdout.print("Unknown error reading file: {s}\n", .{path});
-                },
+                error.FileNotFound => std.debug.print("File does not exist: {s}\n", .{path}),
+                ROMLoadError.UnsupportedMapper => std.debug.print("Unsupported mapper: {s}\n", .{path}),
+                ROMLoadError.UnsupportedFormat => std.debug.print("Unsupported format: {s}\n", .{path}),
+                ROMLoadError.InvalidFormat => std.debug.print("Invalid format: {s}\n", .{path}),
+                else => std.debug.print("Unknown error reading file: {s}\n", .{path}),
             }
-
-            try stdout.flush();
         };
 
         return rom;
@@ -111,15 +95,13 @@ pub const Rom = struct {
 
     // More info about the structure https://www.nesdev.org/wiki/INES
     fn load(self: *Rom, path: []const u8) !void {
-        const cwd = std.fs.cwd();
-        const file = cwd.openFile(path, std.fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
-            return err;
-        };
-        defer file.close();
+        const io = std.Io.Threaded.global_single_threaded.io();
+        const file = try std.Io.Dir.cwd().openFile(io, path, .{ .mode = .read_only });
+        defer file.close(io);
 
         // reading header - first row of bytes
         var header: [16]u8 = undefined;
-        const read = try file.read(header[0..header.len]);
+        const read = try file.readPositionalAll(io, &header, 0);
         if (read != 16) {
             return ROMLoadError.InvalidFormat;
         }
@@ -153,17 +135,12 @@ pub const Rom = struct {
         const chr_rom_size: u16 = self.chr_rom_banks_number * 8 * 1024;
 
         const prg_rom_start: u16 = if (trainer) 16 + 512 else 16;
-        // const chr_rom_start: u16 = prg_rom_start + prg_rom_start;
 
         const allocator = std.heap.page_allocator;
         self.prg_rom = try allocator.alloc(u8, prg_rom_size);
         self.chr_rom = try allocator.alloc(u8, chr_rom_size);
 
-        try file.seekTo(prg_rom_start);
-        _ = try file.read(self.prg_rom[0..prg_rom_size]);
-        _ = try file.read(self.chr_rom[0..chr_rom_size]);
-
-        // std.debug.print("{any},  {any}\n", .{ prg_rom_banks_number, chr_rom_banks_number });
-        // std.debug.print("{any}\n", .{self.chr_rom});
+        _ = try file.readPositionalAll(io, self.prg_rom, prg_rom_start);
+        _ = try file.readPositionalAll(io, self.chr_rom, @as(u64, prg_rom_start) + prg_rom_size);
     }
 };
