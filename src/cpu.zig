@@ -67,7 +67,7 @@ pub const CPU = struct {
         const initial_pc: u16 = self.program_counter;
 
         const value: u8 = self.bus.read8(self.program_counter);
-        self.program_counter += 1;
+        self.program_counter +%= 1;
 
         // these flags are unused in the emulation
         self.setFlag(StatusFlag.U, true);
@@ -84,8 +84,8 @@ pub const CPU = struct {
         self.handleOpcode(value, addressing_mode);
 
         // in the end we increment program counter according to opcode length
-        if (self.program_counter == initial_pc + 1) {
-            self.program_counter += (opcode.?.length - 1);
+        if (self.program_counter == initial_pc +% 1) {
+            self.program_counter +%= (opcode.?.length - 1);
         }
 
         return opcode.?.length;
