@@ -16,29 +16,22 @@ pub fn build(b: *std.Build) void {
 
     const mod = exe.root_module;
 
-    mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
-    mod.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+    mod.addIncludePath(b.path("vendor"));
+    mod.addIncludePath(b.path("src"));
 
-    mod.linkSystemLibrary("SDL3", .{});
-    mod.linkSystemLibrary("iconv", .{});
-    mod.linkFramework("AppKit", .{});
-    mod.linkFramework("AudioToolbox", .{});
-    mod.linkFramework("Carbon", .{});
+    mod.addCSourceFile(.{
+        .file = b.path("src/sokol_impl.c"),
+        .flags = &.{"-ObjC"},
+    });
+
     mod.linkFramework("Cocoa", .{});
-    mod.linkFramework("CoreAudio", .{});
-    mod.linkFramework("CoreFoundation", .{});
-    mod.linkFramework("CoreGraphics", .{});
-    mod.linkFramework("CoreHaptics", .{});
-    mod.linkFramework("CoreVideo", .{});
-    mod.linkFramework("ForceFeedback", .{});
-    mod.linkFramework("GameController", .{});
-    mod.linkFramework("IOKit", .{});
+    mod.linkFramework("QuartzCore", .{});
     mod.linkFramework("Metal", .{});
+    mod.linkFramework("MetalKit", .{});
 
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
-
     run_cmd.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
