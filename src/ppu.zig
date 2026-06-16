@@ -106,7 +106,7 @@ pub const PPU = struct {
             // read from CHAR ROM range
             CHR_ROM_BEGIN...CHR_ROM_END => {
                 const result: u8 = self.internal_buffer;
-                self.internal_buffer = self.chr_rom[address];
+                self.internal_buffer = if (address < self.chr_rom.len) self.chr_rom[address] else 0;
                 return result;
             },
 
