@@ -357,7 +357,7 @@ const ControllerRegister = struct {
     }
 
     pub fn isGenerateVBlanckNMI(self: *ControllerRegister) bool {
-        return (self.flags & @intFromEnum(Flags.generateVBlanckNMI)) == 1;
+        return (self.flags & @intFromEnum(Flags.GenerateVBlanckNMI)) == 1;
     }
 
     pub fn update(self: *ControllerRegister, data: u8) void {
