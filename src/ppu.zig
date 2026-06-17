@@ -483,15 +483,15 @@ const StatusRegister = struct {
     }
 
     pub fn setSpriteOverflow(self: *StatusRegister) void {
-        self.flags = self.flags & @intFromEnum(Flags.SpriteOverflow);
+        self.flags |= @intFromEnum(Flags.SpriteOverflow);
     }
 
     pub fn setSpriteZeroHit(self: *StatusRegister) void {
-        self.flags = self.flags & @intFromEnum(Flags.SpriteZeroHit);
+        self.flags |= @intFromEnum(Flags.SpriteZeroHit);
     }
 
     pub fn setVBlankStarted(self: *StatusRegister) void {
-        self.flags = self.flags & @intFromEnum(Flags.VBlankStarted);
+        self.flags |= @intFromEnum(Flags.VBlankStarted);
     }
 
     pub fn isSpriteOverflow(self: *StatusRegister) bool {
