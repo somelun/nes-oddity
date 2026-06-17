@@ -6,7 +6,6 @@ const opcodes = @import("cpu.zig").opcodes;
 
 const std = @import("std");
 const fmt = @import("std").fmt;
-const stdout = std.io.getStdOut().writer();
 
 // I don't know, but initial cycles is 7
 var cycles: u32 = 7;
@@ -66,15 +65,10 @@ pub fn trace(cpu: *CPU) void {
 
             const tmp: []const u8 = switch (opcode.?.addressing_mode) {
                 AddressingMode.Immediate => fmt.bufPrint(&buffer, "#${X:0>2}", .{address}) catch unreachable,
-
                 AddressingMode.ZeroPage => fmt.bufPrint(&buffer, "${X:0>2} = {X:0>2}", .{ mem_address, stored_value }) catch unreachable,
-
                 AddressingMode.ZeroPageX => fmt.bufPrint(&buffer, "${X:0>2},X @ {X:0>2} = {X:0>2}", .{ address, mem_address, stored_value }) catch unreachable,
-
                 AddressingMode.ZeroPageY => fmt.bufPrint(&buffer, "${X:0>2},Y @ {X:0>2} = {X:0>2}", .{ address, mem_address, stored_value }) catch unreachable,
-
                 AddressingMode.Indirect, AddressingMode.Absolute => fmt.bufPrint(&buffer, "${X:0>4}", .{(begin_pc + 2) +% address}) catch unreachable,
-
                 AddressingMode.Relative => blk: {
                     var offset: u16 = (begin_pc + 2) +% address;
                     if (address > 0x7F) {
@@ -82,11 +76,8 @@ pub fn trace(cpu: *CPU) void {
                     }
                     break :blk fmt.bufPrint(&buffer, "${X:0>4}", .{offset}) catch unreachable;
                 },
-
                 AddressingMode.IndirectX => fmt.bufPrint(&buffer, "(${X:0>2},X) @ {X:0>2} = {X:0>4} = {X:0>2}", .{ address, address +% cpu.register_x, mem_address, stored_value }) catch unreachable,
-
                 AddressingMode.IndirectY => fmt.bufPrint(&buffer, "(${X:0>2}),Y = {X:0>4} @ {X:0>4} = {X:0>2}", .{ address, mem_address -% cpu.register_y, mem_address, stored_value }) catch unreachable,
-
                 else => "",
             };
             break :block tmp;
@@ -105,11 +96,8 @@ pub fn trace(cpu: *CPU) void {
                     };
                     break :block3 tmp1;
                 },
-
                 AddressingMode.AbsoluteX => fmt.bufPrint(&buffer, "${X:0>4},X @ {X:0>4} = {X:0>2}", .{ address, mem_address, stored_value }) catch unreachable,
-
                 AddressingMode.AbsoluteY => fmt.bufPrint(&buffer, "${X:0>4},Y @ {X:0>4} = {X:0>2}", .{ address, mem_address, stored_value }) catch unreachable,
-
                 AddressingMode.Indirect => block2: {
                     // JMP indirect
                     if (value == 0x6C) {
@@ -127,7 +115,6 @@ pub fn trace(cpu: *CPU) void {
                         break :block2 fmt.bufPrint(&buffer, "${X:0>4}", .{address}) catch unreachable;
                     }
                 },
-
                 else => "",
             };
 
@@ -136,37 +123,36 @@ pub fn trace(cpu: *CPU) void {
         else => "",
     };
 
-    stdout.print("{X:0>4}  {X:0>2} ", .{ begin_pc, value }) catch unreachable;
+    std.debug.print("{X:0>4}  {X:0>2} ", .{ begin_pc, value });
 
     if (opcode.?.length == 1) {
-        stdout.print("      ", .{}) catch unreachable;
+        std.debug.print("      ", .{});
     } else if (opcode.?.length == 2) {
         switch (opcode.?.addressing_mode) {
             AddressingMode.IndirectX, AddressingMode.IndirectY, AddressingMode.ZeroPageX, AddressingMode.ZeroPageY => {
                 const address: u8 = cpu.bus.read8(begin_pc + 1);
-                stdout.print("{X:0>2}    ", .{address}) catch unreachable;
+                std.debug.print("{X:0>2}    ", .{address});
             },
-            else => stdout.print("{X:0>2}    ", .{mem_address}) catch unreachable,
+            else => std.debug.print("{X:0>2}    ", .{mem_address}),
         }
     } else if (opcode.?.length == 3) {
         switch (opcode.?.addressing_mode) {
-            AddressingMode.Indirect, AddressingMode.AbsoluteX, AddressingMode.AbsoluteY => stdout.print("{X:0>2} {X:0>2} ", .{ address_lo, address_hi }) catch unreachable,
-            else => stdout.print("{X:0>2} {X:0>2} ", .{ mem_lo, mem_hi }) catch unreachable,
+            AddressingMode.Indirect, AddressingMode.AbsoluteX, AddressingMode.AbsoluteY => std.debug.print("{X:0>2} {X:0>2} ", .{ address_lo, address_hi }),
+            else => std.debug.print("{X:0>2} {X:0>2} ", .{ mem_lo, mem_hi }),
         }
     }
 
     // hardcoded for unofficial opcodes
     if (opcode.?.name.len == 3) {
-        stdout.print(" ", .{}) catch unreachable;
+        std.debug.print(" ", .{});
     }
 
-    // I think there is a bug, thats why I can't concatenate tmp normal way
-    stdout.print("{s} {s}", .{ opcode.?.name, tmp }) catch unreachable;
+    std.debug.print("{s} {s}", .{ opcode.?.name, tmp });
 
     var i: usize = 28 - tmp.len;
     while (i > 0) : (i -= 1) {
-        stdout.print(" ", .{}) catch unreachable;
+        std.debug.print(" ", .{});
     }
 
-    stdout.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2} P:{X:0>2} SP:{X:0>2} {X:0>2}\n", .{ cpu.register_a, cpu.register_x, cpu.register_y, cpu.status, cpu.stack_pointer, cpu.readFromStack() }) catch unreachable;
+    std.debug.print("A:{X:0>2} X:{X:0>2} Y:{X:0>2} P:{X:0>2} SP:{X:0>2} {X:0>2}\n", .{ cpu.register_a, cpu.register_x, cpu.register_y, cpu.status, cpu.stack_pointer, cpu.readFromStack() });
 }
