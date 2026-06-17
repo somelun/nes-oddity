@@ -523,9 +523,9 @@ const ScrollRegister = struct {
 
     pub fn update(self: *ScrollRegister, data: u8) void {
         if (self.latch) {
-            self.scroll_x = data;
-        } else {
             self.scroll_y = data;
+        } else {
+            self.scroll_x = data;
         }
 
         self.latch = !self.latch;
