@@ -180,29 +180,13 @@ pub const PPU = struct {
     pub fn writeData(self: *PPU, value: u8) void {
         const address: u16 = self.addressRegister.get();
 
+        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
+
         switch (address) {
-            // PPU VRAM Range
-            0x2000...0x2FFF => {
-                switch (address) {
-                    // Controller Register
-                    0x2000 => {
-                        self.controllerRegister.update(value);
-                    },
+            CHR_ROM_BEGIN...CHR_ROM_END => {},
 
-                    // Address Register
-                    0x2006 => {
-                        self.addressRegister.update(value);
-                    },
-
-                    // Data Register
-                    0x2007 => {
-                        self.addressRegister.increment(self.controllerRegister.VRAMAddressIncrement());
-                    },
-
-                    else => {
-                        self.vram[self.mirrorVRAMAddress(address)] = value;
-                    },
-                }
+            VRAM_BEGIN...VRAM_END => {
+                self.vram[self.mirrorVRAMAddress(address)] = value;
             },
 
             PALETTES_BEGIN...PALETTES_END => {
