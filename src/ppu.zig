@@ -28,6 +28,7 @@
 // This is MUST READ!
 //
 
+const std = @import("std");
 const Mirroring = @import("rom.zig").Mirroring;
 
 const CHR_ROM_BEGIN: u16 = 0x0000;
@@ -575,3 +576,57 @@ const AddressRegister = struct {
 };
 
 // OAM DMA Register (0x4014)
+
+test "writeData writes to vram and increments address" {
+    var ppu = PPU.init();
+    // set address to 0x2300
+    ppu.addressRegister.update(0x23);
+    ppu.addressRegister.update(0x00);
+
+    ppu.writeData(0xAB);
+
+    try std.testing.expect(ppu.vram[ppu.mirrorVRAMAddress(0x2300)] == 0xAB);
+    // and now we expect address + 1
+    try std.testing.expect(ppu.addressRegister.get() == 0x2301);
+}
+
+test "address wraps around after 0x3FFF" {
+    var ppu = PPU.init();
+    ppu.addressRegister.update(0x2F);
+    ppu.addressRegister.update(0xFF);
+
+    ppu.writeData(0xAB);
+
+    try std.testing.expect(ppu.vram[ppu.mirrorVRAMAddress(0x2FFF)] == 0xAB);
+    try std.testing.expect(ppu.addressRegister.get() == 0x3000);
+}
+
+test "address wraps from 0x3FFF to 0x0000" {
+    var ppu = PPU.init();
+    ppu.addressRegister.update(0x3F);
+    ppu.addressRegister.update(0x1F);
+
+    ppu.writeData(0xAB);
+
+    try std.testing.expect(ppu.palette_table[0x1F] == 0xAB);
+    try std.testing.expect(ppu.addressRegister.get() == 0x3F20);
+}
+
+test "read same address" {
+    var ppu = PPU.init();
+    ppu.addressRegister.update(0x23);
+    ppu.addressRegister.update(0x00);
+
+    ppu.writeData(0xAB);
+
+    try std.testing.expect(ppu.vram[ppu.mirrorVRAMAddress(0x2300)] == 0xAB);
+
+    ppu.addressRegister.update(0x23);
+    ppu.addressRegister.update(0x00);
+
+    const first = ppu.readData(); // returns old buffer = 0x00
+    const second = ppu.readData(); // returns 0xAB
+
+    try std.testing.expect(first == 0x00);
+    try std.testing.expect(second == 0xAB);
+}
