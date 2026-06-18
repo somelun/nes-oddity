@@ -612,7 +612,7 @@ test "address wraps from 0x3FFF to 0x0000" {
     try std.testing.expect(ppu.addressRegister.get() == 0x3F20);
 }
 
-test "read same address" {
+test "readData is buffered for VRAM" {
     var ppu = PPU.init();
     ppu.addressRegister.update(0x23);
     ppu.addressRegister.update(0x00);
@@ -629,4 +629,79 @@ test "read same address" {
 
     try std.testing.expect(first == 0x00);
     try std.testing.expect(second == 0xAB);
+}
+
+test "readData: palette returns immediately without buffering" {
+    var ppu = PPU.init();
+    ppu.addressRegister.update(0x3F);
+    ppu.addressRegister.update(0x00);
+    ppu.writeData(0xAB);
+
+    ppu.addressRegister.update(0x3F);
+    ppu.addressRegister.update(0x00);
+
+    const first = ppu.readData(); // returns 0xAB, no buffering
+    try std.testing.expect(first == 0xAB);
+}
+
+test "readData from chrom" {
+    var data = [_]u8{ 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 };
+
+    var ppu = PPU.init();
+    ppu.updateRomData(&data, Mirroring.Vertical);
+
+    ppu.addressRegister.update(0x00);
+    ppu.addressRegister.update(0x00);
+
+    const first = ppu.readData(); // returns 0x00
+    const second = ppu.readData(); // returns 0xA1
+    const third = ppu.readData(); // returns 0xA2
+
+    try std.testing.expect(first == 0x00);
+    try std.testing.expect(second == 0xA1);
+    try std.testing.expect(third == 0xA2);
+}
+
+test "controller register increment by 32" {
+    var ppu = PPU.init();
+    ppu.addressRegister.update(0x20);
+    ppu.addressRegister.update(0x00);
+
+    ppu.controllerRegister.update(0b00000100);
+
+    ppu.writeData(0xAB);
+
+    try std.testing.expect(ppu.addressRegister.get() == 0x2020);
+}
+
+test "vertical mirroring from VRAM" {
+    var ppu = PPU.init();
+    ppu.mirroring = Mirroring.Vertical;
+
+    ppu.addressRegister.update(0x20);
+    ppu.addressRegister.update(0x00);
+    ppu.writeData(0xAB);
+
+    ppu.addressRegister.update(0x28);
+    ppu.addressRegister.update(0x00);
+    _ = ppu.readData();
+    const result = ppu.readData();
+
+    try std.testing.expect(result == 0xAB);
+}
+
+test "horizontal mirroring from VRAM" {
+    var ppu = PPU.init();
+    ppu.mirroring = Mirroring.Horizontal;
+
+    ppu.addressRegister.update(0x20);
+    ppu.addressRegister.update(0x00);
+    ppu.writeData(0xAB);
+
+    ppu.addressRegister.update(0x24);
+    ppu.addressRegister.update(0x00);
+    _ = ppu.readData();
+    const result = ppu.readData();
+
+    try std.testing.expect(result == 0xAB);
 }
