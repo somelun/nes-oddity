@@ -705,3 +705,17 @@ test "horizontal mirroring from VRAM" {
 
     try std.testing.expect(result == 0xAB);
 }
+
+test "palette mirroring" {
+    var ppu = PPU.init();
+
+    ppu.addressRegister.update(0x3F);
+    ppu.addressRegister.update(0x00);
+    ppu.writeData(0xA1);
+
+    ppu.addressRegister.update(0x3F);
+    ppu.addressRegister.update(0x10);
+    const result = ppu.readData();
+
+    try std.testing.expect(result == 0xA1);
+}
