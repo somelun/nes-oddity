@@ -47,6 +47,10 @@ pub const PPU = struct {
     oam_data: [0x100]u8 = [_]u8{0} ** 0x100,
     oam_address: u8 = 0,
 
+    scanline: u16 = 0,
+    cycles: u16 = 0,
+    nmi_pending: bool = false,
+
     mirroring: Mirroring = undefined,
 
     controllerRegister: ControllerRegister = undefined,
@@ -67,6 +71,27 @@ pub const PPU = struct {
         ppu.addressRegister = AddressRegister.init();
 
         return ppu;
+    }
+
+    pub fn tick(self: *PPU, cycles: u8) bool {
+        self.cycles += cycles;
+        if (self.cycles >= 341) {
+            self.cycles = self.cycles - 341;
+            self.scanline += 1;
+
+            if (self.scanline == 241) {
+                self.statusRegister.setVBlankStarted();
+                if (self.controllerRegister.isGenerateVBlanckNMI()) {
+                    return true;
+                }
+            }
+
+            if (self.scanline >= 262) {
+                self.scanline = 0;
+                self.statusRegister.clearVBlankStarted();
+            }
+        }
+        return false;
     }
 
     pub fn updateRomData(self: *PPU, chr_rom: []u8, mirroring: Mirroring) void {
@@ -145,7 +170,15 @@ pub const PPU = struct {
         switch (address) {
             // write to controll register
             0x2000 => {
+                const prev_nmi = self.controllerRegister.isGenerateVBlanckNMI();
                 self.controllerRegister.update(data);
+
+                const cur_nmi = self.controllerRegister.isGenerateVBlanckNMI();
+                if (prev_nmi != cur_nmi) {
+                    if (cur_nmi and self.statusRegister.isVBlankStarted()) {
+                        self.nmi_pending = true;
+                    }
+                }
             },
 
             // write to mask register

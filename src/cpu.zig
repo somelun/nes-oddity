@@ -62,6 +62,24 @@ pub const CPU = struct {
     }
 
     pub fn cycle(self: *CPU) u8 {
+        if (self.bus.nmi_pending) {
+            self.bus.nmi_pending = false;
+
+            self.pushToStack(@intCast(self.program_counter >> 8));
+            self.pushToStack(@intCast(self.program_counter & 0xFF));
+
+            // we need to push not just the status but the one with updated B and U flags
+            var status = self.status;
+            status &= ~@intFromEnum(StatusFlag.B);
+            status |= @intFromEnum(StatusFlag.U);
+            self.pushToStack(status);
+
+            self.setFlag(StatusFlag.I, true);
+
+            self.bus.tick(2);
+            self.program_counter = self.bus.read16(0xFFFA);
+        }
+
         // store initial PC value for the later incrementation if it is not
         // changed (for example after branch instruction)
         const initial_pc: u16 = self.program_counter;
@@ -82,6 +100,9 @@ pub const CPU = struct {
         const addressing_mode: AddressingMode = opcode.?.addressing_mode;
 
         self.handleOpcode(value, addressing_mode);
+
+        // ticking BUS
+        self.bus.tick(opcode.?.cycles);
 
         // in the end we increment program counter according to opcode length
         if (self.program_counter == initial_pc +% 1) {

@@ -63,7 +63,9 @@ pub const Bus = struct {
     ppu: PPU = undefined,
     rom: Rom = undefined,
 
-    var tick_counter: u32 = 0;
+    cycles: u32 = 0,
+
+    nmi_pending: bool = false,
 
     pub fn init() Bus {
         var bus: Bus = Bus{};
@@ -84,12 +86,16 @@ pub const Bus = struct {
         return true;
     }
 
-    pub fn tick(self: *Bus) void {
-        self.tick_counter += 1;
+    pub fn tick(self: *Bus, cycles: u8) void {
+        self.cycles += cycles;
+        if (self.ppu.tick(cycles * 3) or self.ppu.nmi_pending) {
+            self.ppu.nmi_pending = false;
+            self.nmi_pending = true;
+        }
     }
 
     pub fn reset(self: *Bus) void {
-        self.tick_counter = 0;
+        self.cycles = 0;
     }
 
     pub fn read8(self: *Bus, address: u16) u8 {
