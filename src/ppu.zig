@@ -124,10 +124,12 @@ pub const PPU = struct {
             const start = bank + tile_idx * 16;
             const tile = self.chr_rom[start .. start + 16];
 
+            const palette = self.bgPalette(tile_x, tile_y);
+
             for (0..8) |row| {
                 const y: u16 = @intCast(row);
-                var upper = tile[row];
-                var lower = tile[row + 8];
+                var lower = tile[row];
+                var upper = tile[row + 8];
 
                 for (0..8) |col| {
                     const x: u16 = 7 - @as(u16, @intCast(col));
@@ -136,10 +138,10 @@ pub const PPU = struct {
                     lower = lower >> 1;
 
                     const rgb = switch (value) {
-                        0 => SYSTEM_PALETTE[0x01],
-                        1 => SYSTEM_PALETTE[0x23],
-                        2 => SYSTEM_PALETTE[0x27],
-                        3 => SYSTEM_PALETTE[0x30],
+                        0 => SYSTEM_PALETTE[self.palette_table[0]],
+                        1 => SYSTEM_PALETTE[palette[0]],
+                        2 => SYSTEM_PALETTE[palette[1]],
+                        3 => SYSTEM_PALETTE[palette[2]],
                         else => unreachable,
                     };
 
@@ -147,6 +149,30 @@ pub const PPU = struct {
                 }
             }
         }
+    }
+
+    pub fn bgPalette(self: *PPU, tile_column: u16, tile_row: u16) [3]u8 {
+        const attr_table_idx = (tile_row / 4) * 8 + (tile_column / 4);
+        const attr_byte = self.vram[0x3C0 + attr_table_idx];
+
+        const col_bit = (tile_column % 4) / 2;
+        const row_bit = (tile_row % 4) / 2;
+
+        const pallet_idx: u2 = switch ((row_bit << 1) | col_bit) {
+            0b00 => @intCast(attr_byte & 0b11),
+            0b01 => @intCast((attr_byte >> 2) & 0b11),
+            0b10 => @intCast((attr_byte >> 4) & 0b11),
+            0b11 => @intCast((attr_byte >> 6) & 0b11),
+            else => unreachable,
+        };
+
+        const palette_start = 1 + (@as(usize, pallet_idx) * 4);
+
+        return [3]u8{
+            self.palette_table[palette_start],
+            self.palette_table[palette_start + 1],
+            self.palette_table[palette_start + 2],
+        };
     }
 
     pub fn setPixel(self: *PPU, x: u16, y: u16, rgb: [3]u8) void {
