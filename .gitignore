@@ -4,3 +4,4 @@ zig-out/*
 src/zig-cache/*
 nestest.log
 *.txt
+roms/*

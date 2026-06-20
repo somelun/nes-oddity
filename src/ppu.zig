@@ -119,10 +119,11 @@ pub const PPU = struct {
         self.frame_buffer[index + 2] = rgb[2];
     }
 
-    pub fn showTile(self: *PPU, bank: u8, tile_n: u8) void {
+    pub fn showTile(self: *PPU, bank: u8, tile_n: u8, offset_x: u16, offset_y: u16) void {
         const bank_address = @as(u16, bank) * 0x1000;
 
         const start = bank_address + @as(u16, tile_n) * 16;
+        if (start + 16 > self.chr_rom.len) return;
         const tile = self.chr_rom[start .. start + 16];
 
         var y: u16 = 0;
@@ -146,7 +147,7 @@ pub const PPU = struct {
                     else => unreachable,
                 };
 
-                self.setPixel(x, y, rgb);
+                self.setPixel(offset_x + x, offset_y + y, rgb);
             }
         }
     }

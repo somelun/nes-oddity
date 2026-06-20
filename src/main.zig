@@ -12,10 +12,10 @@ const c = @cImport({
 const Bus = @import("bus.zig").Bus;
 const CPU = @import("cpu.zig").CPU;
 
-const SCREEN_W = 32;
-const SCREEN_H = 32;
-
-const Color = struct { r: u8 = 0, g: u8 = 0, b: u8 = 0 };
+// if false will just print all the tiles
+const GAME_LOOP = false;
+const SCREEN_W = 256;
+const SCREEN_H = 240;
 
 const State = struct {
     pip: c.sg_pipeline,
@@ -23,7 +23,7 @@ const State = struct {
     img: c.sg_image,
     bus: Bus,
     cpu: CPU,
-    pixel_buf: [SCREEN_W * SCREEN_H]u32,
+    rgba_buf: [SCREEN_W * SCREEN_H * 4]u8,
     frame_count: u32,
 };
 
@@ -61,9 +61,9 @@ export fn init() void {
 
     const vertices = [_]f32{
         -1.0, -1.0, 0.0, 1.0,
-         1.0, -1.0, 1.0, 1.0,
-         1.0,  1.0, 1.0, 0.0,
-        -1.0,  1.0, 0.0, 0.0,
+        1.0,  -1.0, 1.0, 1.0,
+        1.0,  1.0,  1.0, 0.0,
+        -1.0, 1.0,  0.0, 0.0,
     };
     const indices = [_]u16{ 0, 1, 2, 0, 2, 3 };
 
@@ -82,7 +82,6 @@ export fn init() void {
         .usage = .{ .stream_update = true },
     });
 
-    // create a texture view from the image for shader binding
     const view = c.sg_make_view(&c.sg_view_desc{
         .texture = .{ .image = state.img },
     });
@@ -103,7 +102,7 @@ export fn init() void {
                 .image_type = c.SG_IMAGETYPE_2D,
                 .sample_type = c.SG_IMAGESAMPLETYPE_FLOAT,
                 .msl_texture_n = 0,
-            }};
+            } };
             break :blk v;
         },
         .samplers = blk: {
@@ -138,29 +137,58 @@ export fn init() void {
     });
 
     state.bus = Bus.init();
-    if (!state.bus.loadRom("roms/snake.nes")) {
+    if (!state.bus.loadRom("roms/pacman.nes")) {
         std.debug.print("failed to load rom\n", .{});
         return;
     }
     state.cpu = CPU.init(&state.bus);
     state.cpu.reset();
     state.frame_count = 0;
+
+    if (!GAME_LOOP) {
+        showAllTiles();
+    }
+}
+
+fn convertFrameBuffer() void {
+    const fb = &state.bus.ppu.frame_buffer;
+    var i: usize = 0;
+    while (i < SCREEN_W * SCREEN_H) : (i += 1) {
+        state.rgba_buf[i * 4 + 0] = fb[i * 3 + 0];
+        state.rgba_buf[i * 4 + 1] = fb[i * 3 + 1];
+        state.rgba_buf[i * 4 + 2] = fb[i * 3 + 2];
+        state.rgba_buf[i * 4 + 3] = 0xFF;
+    }
+}
+
+fn showAllTiles() void {
+    var bank: u8 = 0;
+    while (bank <= 1) : (bank += 1) {
+        var tile_n: u16 = 0;
+        while (tile_n < 256) : (tile_n += 1) {
+            const tile_x = tile_n % 16;
+            const tile_y = tile_n / 16;
+            const offset_x = @as(u16, bank) * 128 + tile_x * 8;
+            const offset_y = tile_y * 8;
+            state.bus.ppu.showTile(bank, @intCast(tile_n), offset_x, offset_y);
+        }
+    }
 }
 
 export fn frame() void {
-    state.bus.write8(0xFE, @intCast((state.frame_count % 15) + 1));
-
-    var i: u32 = 0;
-    while (i < 700) : (i += 1) {
-        _ = state.cpu.cycle();
+    if (GAME_LOOP) {
+        var i: u32 = 0;
+        while (i < 700) : (i += 1) {
+            _ = state.cpu.cycle();
+        }
     }
 
-    readScreenState(&state.pixel_buf);
+    convertFrameBuffer();
 
     c.sg_update_image(state.img, &c.sg_image_data{
         .mip_levels = blk: {
             var d: [16]c.sg_range = @splat(.{});
-            d[0] = .{ .ptr = &state.pixel_buf, .size = @sizeOf(@TypeOf(state.pixel_buf)) };
+            d[0] = .{ .ptr = &state.rgba_buf, .size = @sizeOf(@TypeOf(state.rgba_buf)) };
             break :blk d;
         },
     });
@@ -198,36 +226,10 @@ pub fn main() void {
         .frame_cb = frame,
         .event_cb = on_event,
         .cleanup_cb = cleanup,
-        .width = 320,
-        .height = 320,
+        .width = 512,
+        .height = 480,
         .window_title = "nes oddity",
         .icon = .{ .sokol_default = true },
         .logger = .{ .func = c.slog_func },
     });
-}
-
-fn convertByteToColor(byte: u8) Color {
-    return switch (byte) {
-        0 => .{ .r = 0, .g = 0, .b = 0 },
-        1 => .{ .r = 255, .g = 255, .b = 255 },
-        2, 9 => .{ .r = 128, .g = 128, .b = 128 },
-        3, 10 => .{ .r = 255, .g = 0, .b = 0 },
-        4, 11 => .{ .r = 0, .g = 255, .b = 0 },
-        5, 12 => .{ .r = 0, .g = 255, .b = 255 },
-        6, 13 => .{ .r = 255, .g = 0, .b = 255 },
-        7, 14 => .{ .r = 255, .g = 255, .b = 0 },
-        else => .{ .r = 0, .g = 255, .b = 255 },
-    };
-}
-
-fn readScreenState(buffer: *[SCREEN_W * SCREEN_H]u32) void {
-    var index: u16 = 0;
-    var i: u16 = 0x0200;
-    while (i < 0x0600) : (i += 1) {
-        const value = state.bus.read8(i);
-        const color = convertByteToColor(value);
-        // RGBA8: R in high byte
-        buffer[index] = (@as(u32, color.r) << 24) | (@as(u32, color.g) << 16) | (@as(u32, color.b) << 8) | 0xFF;
-        index += 1;
-    }
 }
