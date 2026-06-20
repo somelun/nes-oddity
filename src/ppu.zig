@@ -107,9 +107,46 @@ pub const PPU = struct {
             if (self.scanline >= 262) {
                 self.scanline = 0;
                 self.statusRegister.clearVBlankStarted();
+                self.render();
             }
         }
         return false;
+    }
+
+    pub fn render(self: *PPU) void {
+        const bank = self.controllerRegister.backgroundPatternAddress();
+
+        for (0..0x03c0) |i| {
+            const tile_idx = @as(u16, self.vram[i]);
+            const tile_x: u16 = @intCast(i % 32);
+            const tile_y: u16 = @intCast(i / 32);
+
+            const start = bank + tile_idx * 16;
+            const tile = self.chr_rom[start .. start + 16];
+
+            for (0..8) |row| {
+                const y: u16 = @intCast(row);
+                var upper = tile[row];
+                var lower = tile[row + 8];
+
+                for (0..8) |col| {
+                    const x: u16 = 7 - @as(u16, @intCast(col));
+                    const value = (1 & upper) << 1 | (1 & lower);
+                    upper = upper >> 1;
+                    lower = lower >> 1;
+
+                    const rgb = switch (value) {
+                        0 => SYSTEM_PALETTE[0x01],
+                        1 => SYSTEM_PALETTE[0x23],
+                        2 => SYSTEM_PALETTE[0x27],
+                        3 => SYSTEM_PALETTE[0x30],
+                        else => unreachable,
+                    };
+
+                    self.setPixel(tile_x * 8 + x, tile_y * 8 + y, rgb);
+                }
+            }
+        }
     }
 
     pub fn setPixel(self: *PPU, x: u16, y: u16, rgb: [3]u8) void {
@@ -415,9 +452,10 @@ const ControllerRegister = struct {
     }
 
     pub fn backgroundPatternAddress(self: *ControllerRegister) u16 {
-        switch (self.flags & @intFromEnum(Flags.BackgroundPatternAddress)) {
-            0 => return 0,
-            1 => return 0x1000,
+        if (self.flags & @intFromEnum(Flags.BackgroundPatternAddress) > 0) {
+            return 0x1000;
+        } else {
+            return 0;
         }
     }
 
