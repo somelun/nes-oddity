@@ -13,7 +13,7 @@ const Bus = @import("bus.zig").Bus;
 const CPU = @import("cpu.zig").CPU;
 
 // if false will just print all the tiles
-const GAME_LOOP = false;
+const GAME_LOOP = true;
 const SCREEN_W = 256;
 const SCREEN_H = 240;
 
@@ -178,10 +178,12 @@ fn showAllTiles() void {
 export fn frame() void {
     if (GAME_LOOP) {
         var i: u32 = 0;
-        while (i < 700) : (i += 1) {
+        while (i < 29780) : (i += 1) {
             _ = state.cpu.cycle();
         }
     }
+
+
 
     convertFrameBuffer();
 

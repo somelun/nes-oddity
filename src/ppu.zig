@@ -467,11 +467,11 @@ const ControllerRegister = struct {
     }
 
     pub fn isMasterSlaveSelect(self: *ControllerRegister) bool {
-        return (self.flags & @intFromEnum(Flags.MasterSlaveSelect)) == 1;
+        return (self.flags & @intFromEnum(Flags.MasterSlaveSelect)) > 0;
     }
 
     pub fn isGenerateVBlanckNMI(self: *ControllerRegister) bool {
-        return (self.flags & @intFromEnum(Flags.GenerateVBlanckNMI)) == 1;
+        return (self.flags & @intFromEnum(Flags.GenerateVBlanckNMI)) > 0;
     }
 
     pub fn update(self: *ControllerRegister, data: u8) void {
@@ -520,23 +520,23 @@ const MaskRegister = struct {
     }
 
     pub fn isGreyscale(self: *MaskRegister) bool {
-        return (self.flags & @intFromEnum(Flags.Greyscale)) == 1;
+        return (self.flags & @intFromEnum(Flags.Greyscale)) > 0;
     }
 
     pub fn isShowBackgroungInLeftmost8(self: *MaskRegister) bool {
-        return (self.flags & @intFromEnum(Flags.ShowBackgroungInLeftmost8)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowBackgroungInLeftmost8)) > 0;
     }
 
     pub fn isShowSpritesInLeftmost8(self: *MaskRegister) bool {
-        return (self.flags & @intFromEnum(Flags.ShowSpritesInLeftmost8)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowSpritesInLeftmost8)) > 0;
     }
 
     pub fn isShowBackground(self: *MaskRegister) bool {
-        return (self.flags & @intFromEnum(Flags.ShowBackground)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowBackground)) > 0;
     }
 
     pub fn isShowSprites(self: *MaskRegister) bool {
-        return (self.flags & @intFromEnum(Flags.ShowSprites)) == 1;
+        return (self.flags & @intFromEnum(Flags.ShowSprites)) > 0;
     }
 
     pub fn emphasize(self: *MaskRegister) void {
@@ -609,15 +609,15 @@ const StatusRegister = struct {
     }
 
     pub fn isSpriteOverflow(self: *StatusRegister) bool {
-        return (self.flags & @intFromEnum(Flags.SpriteOverflow)) == 1;
+        return (self.flags & @intFromEnum(Flags.SpriteOverflow)) > 0;
     }
 
     pub fn isSpriteZeroHit(self: *StatusRegister) bool {
-        return (self.flags & @intFromEnum(Flags.SpriteZeroHit)) == 1;
+        return (self.flags & @intFromEnum(Flags.SpriteZeroHit)) > 0;
     }
 
     pub fn isVBlankStarted(self: *StatusRegister) bool {
-        return (self.flags & @intFromEnum(Flags.VBlankStarted)) == 1;
+        return (self.flags & @intFromEnum(Flags.VBlankStarted)) > 0;
     }
 
     pub fn clearVBlankStarted(self: *StatusRegister) void {
