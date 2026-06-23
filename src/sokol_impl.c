@@ -5,3 +5,4 @@
 #include "../vendor/sokol_app.h"
 #include "../vendor/sokol_gfx.h"
 #include "../vendor/sokol_glue.h"
+#include "../vendor/sokol_audio.h"

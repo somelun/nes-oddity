@@ -7,6 +7,7 @@ const c = @cImport({
     @cInclude("sokol_app.h");
     @cInclude("sokol_gfx.h");
     @cInclude("sokol_glue.h");
+    @cInclude("sokol_audio.h");
 });
 
 const Bus = @import("bus.zig").Bus;
@@ -182,8 +183,6 @@ export fn frame() void {
             _ = state.cpu.cycle();
         }
     }
-
-
 
     convertFrameBuffer();
 

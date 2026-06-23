@@ -28,6 +28,7 @@ pub fn build(b: *std.Build) void {
     mod.linkFramework("QuartzCore", .{});
     mod.linkFramework("Metal", .{});
     mod.linkFramework("MetalKit", .{});
+    mod.linkFramework("AudioToolbox", .{});
 
     b.installArtifact(exe);
 
