@@ -163,6 +163,14 @@ pub const Bus = struct {
                 self.write8(address & 0x2007, data);
             },
 
+            0x4014 => {
+                const base: u16 = @as(u16, data) << 8;
+                for (0..256) |i| {
+                    self.ppu.oam_data[self.ppu.oam_address] = self.read8(base + @as(u16, @intCast(i)));
+                    self.ppu.oam_address +%= 1;
+                }
+            },
+
             else => {},
         }
     }
