@@ -232,6 +232,7 @@ pub const PPU = struct {
     }
 
     pub fn setPixel(self: *PPU, x: u16, y: u16, rgb: [3]u8) void {
+        if (x >= 256 or y >= 240) return;
         const index = (@as(usize, y) * 256 + x) * 3;
         self.frame_buffer[index] = rgb[0];
         self.frame_buffer[index + 1] = rgb[1];

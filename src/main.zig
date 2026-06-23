@@ -177,8 +177,8 @@ fn showAllTiles() void {
 
 export fn frame() void {
     if (GAME_LOOP) {
-        var i: u32 = 0;
-        while (i < 29780) : (i += 1) {
+        const cycles_start = state.bus.cycles;
+        while (state.bus.cycles - cycles_start < 29780) {
             _ = state.cpu.cycle();
         }
     }
