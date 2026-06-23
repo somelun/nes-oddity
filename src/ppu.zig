@@ -116,6 +116,7 @@ pub const PPU = struct {
     pub fn render(self: *PPU) void {
         const bank = self.controllerRegister.backgroundPatternAddress();
 
+        // render background
         for (0..0x03c0) |i| {
             const tile_idx = @as(u16, self.vram[i]);
             const tile_x: u16 = @intCast(i % 32);
@@ -149,6 +150,52 @@ pub const PPU = struct {
                 }
             }
         }
+
+        // render sprites (back to front)
+        var si: usize = self.oam_data.len;
+        while (si > 0) {
+            si -= 4;
+
+            const tile_idx: u16 = self.oam_data[si + 1];
+            const tile_x: usize = self.oam_data[si + 3];
+            const tile_y: usize = self.oam_data[si];
+
+            const flip_vertical = ((self.oam_data[si + 2] >> 7) & 1) == 1;
+            const flip_horizontal = ((self.oam_data[si + 2] >> 6) & 1) == 1;
+
+            const palette_idx = self.oam_data[si + 2] & 0b11;
+            const sprite_palette_bytes = self.spritePalette(palette_idx);
+
+            const bank1: u16 = self.controllerRegister.spritePatternTableAddress();
+            const tile_start: usize = @intCast(bank1 + tile_idx * 16);
+            const tile = self.chr_rom[tile_start .. tile_start + 16];
+
+            for (0..8) |row| {
+                var lower = tile[row];
+                var upper = tile[row + 8];
+
+                for (0..8) |col| {
+                    const x = 7 - col;
+                    const value = ((1 & upper) << 1) | (1 & lower);
+                    upper >>= 1;
+                    lower >>= 1;
+
+                    if (value == 0) continue;
+
+                    const rgb = switch (value) {
+                        1 => SYSTEM_PALETTE[sprite_palette_bytes[0]],
+                        2 => SYSTEM_PALETTE[sprite_palette_bytes[1]],
+                        3 => SYSTEM_PALETTE[sprite_palette_bytes[2]],
+                        else => unreachable,
+                    };
+
+                    const pixel_x: u16 = @intCast(if (flip_horizontal) tile_x + 7 - x else tile_x + x);
+                    const pixel_y: u16 = @intCast(if (flip_vertical) tile_y + 7 - row else tile_y + row);
+
+                    self.setPixel(pixel_x, pixel_y, rgb);
+                }
+            }
+        }
     }
 
     pub fn bgPalette(self: *PPU, tile_column: u16, tile_row: u16) [3]u8 {
@@ -168,6 +215,15 @@ pub const PPU = struct {
 
         const palette_start = 1 + (@as(usize, pallet_idx) * 4);
 
+        return [3]u8{
+            self.palette_table[palette_start],
+            self.palette_table[palette_start + 1],
+            self.palette_table[palette_start + 2],
+        };
+    }
+
+    fn spritePalette(self: *PPU, pallete_idx: u8) [3]u8 {
+        const palette_start = 0x11 + (@as(usize, pallete_idx) * 4);
         return [3]u8{
             self.palette_table[palette_start],
             self.palette_table[palette_start + 1],
@@ -227,8 +283,8 @@ pub const PPU = struct {
             0x2002 => {
                 result = self.statusRegister.get();
                 self.statusRegister.clearVBlankStarted();
-                self.addressRegister.reset_latch();
-                self.scrollRegister.reset_latch();
+                self.addressRegister.resetLatch();
+                self.scrollRegister.resetLatch();
             },
 
             // read oam data
@@ -471,9 +527,10 @@ const ControllerRegister = struct {
     }
 
     pub fn spritePatternTableAddress(self: *ControllerRegister) u16 {
-        switch (self.flags & @intFromEnum(Flags.SpritePatternTableAddress)) {
-            0 => return 0,
-            1 => return 0x1000,
+        if (self.flags & @intFromEnum(Flags.SpritePatternTableAddress) > 0) {
+            return 0x1000;
+        } else {
+            return 0;
         }
     }
 
@@ -671,7 +728,7 @@ const ScrollRegister = struct {
         self.latch = !self.latch;
     }
 
-    pub fn reset_latch(self: *ScrollRegister) void {
+    pub fn resetLatch(self: *ScrollRegister) void {
         self.latch = false;
     }
 };
@@ -725,7 +782,7 @@ const AddressRegister = struct {
         }
     }
 
-    pub fn reset_latch(self: *AddressRegister) void {
+    pub fn resetLatch(self: *AddressRegister) void {
         self.using_hi = true;
     }
 };
