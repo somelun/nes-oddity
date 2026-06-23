@@ -24,7 +24,7 @@
 // |------------------------| 0x0000   |-------------------------|
 //
 // More info about PPU register is here:
-// https://wiki.nesdev.com/w/index.php/PPU_registers
+// https://www.nesdev.org/wiki/PPU_registers
 // This is MUST READ!
 //
 
@@ -321,7 +321,7 @@ pub const PPU = struct {
             // read from Palette Range
             PALETTES_BEGIN...PALETTES_END => {
                 // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of 0x3F00/0x3F04/0x3F08/0x3F0C.
-                // https://wiki.nesdev.org/w/index.php/PPU_palettes
+                // https://www.nesdev.org/wiki/PPU_palettes
                 switch (address) {
                     0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
                         const add_mirror = address - 0x10;
@@ -400,7 +400,7 @@ pub const PPU = struct {
 
             PALETTES_BEGIN...PALETTES_END => {
                 // Addresses 0x3F10/0x3F14/0x3F18/0x3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C.
-                // https://wiki.nesdev.org/w/index.php/PPU_palettes
+                // https://www.nesdev.org/wiki/PPU_palettes
                 switch (address) {
                     0x3F10, 0x3F14, 0x3F18, 0x3F1C => {
                         const add_mirror = address - 0x10;

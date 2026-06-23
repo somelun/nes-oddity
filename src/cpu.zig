@@ -878,7 +878,7 @@ pub const CPU = struct {
 
     fn _php(self: *CPU) void {
         // the reason of why we need to make a copy and set B and U flags is here:
-        // https://wiki.nesdev.com/w/index.php?title=Status_flags
+        // https://www.nesdev.org/wiki/Status_flags
         var status: u8 = self.status;
         status |= (1 << 4) | (1 << 5);
         self.pushToStack(status);
@@ -891,7 +891,7 @@ pub const CPU = struct {
 
     fn _plp(self: *CPU) void {
         // the reason of why we need to remove B and insert U flags is here:
-        // https://wiki.nesdev.com/w/index.php?title=Status_flags
+        // https://www.nesdev.org/wiki/Status_flags
         self.status = self.popFromStack();
         self.setFlag(StatusFlag.B, false);
         self.setFlag(StatusFlag.U, true);
