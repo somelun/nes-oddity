@@ -205,16 +205,40 @@ export fn frame() void {
     state.frame_count += 1;
 }
 
+const JoypadButton = @import("joypad.zig").JoypadButton;
+
+fn setButton(key: c_uint, pressed: bool) void {
+    const btn: u8 = switch (key) {
+        c.SAPP_KEYCODE_J => @intFromEnum(JoypadButton.ButtonA),
+        c.SAPP_KEYCODE_K => @intFromEnum(JoypadButton.ButtonB),
+        c.SAPP_KEYCODE_SPACE => @intFromEnum(JoypadButton.Select),
+        c.SAPP_KEYCODE_ENTER => @intFromEnum(JoypadButton.Start),
+        c.SAPP_KEYCODE_W => @intFromEnum(JoypadButton.Up),
+        c.SAPP_KEYCODE_S => @intFromEnum(JoypadButton.Down),
+        c.SAPP_KEYCODE_A => @intFromEnum(JoypadButton.Left),
+        c.SAPP_KEYCODE_D => @intFromEnum(JoypadButton.Right),
+        else => return,
+    };
+    if (pressed) {
+        state.bus.joypad.buttons |= btn;
+    } else {
+        state.bus.joypad.buttons &= ~btn;
+    }
+}
+
 export fn on_event(e: [*c]const c.sapp_event) void {
-    if (e.*.type == c.SAPP_EVENTTYPE_KEY_DOWN) {
-        switch (e.*.key_code) {
-            c.SAPP_KEYCODE_W => state.bus.write8(0xFF, 0x77),
-            c.SAPP_KEYCODE_S => state.bus.write8(0xFF, 0x73),
-            c.SAPP_KEYCODE_A => state.bus.write8(0xFF, 0x61),
-            c.SAPP_KEYCODE_D => state.bus.write8(0xFF, 0x64),
-            c.SAPP_KEYCODE_ESCAPE => c.sapp_quit(),
-            else => {},
-        }
+    switch (e.*.type) {
+        c.SAPP_EVENTTYPE_KEY_DOWN => {
+            if (e.*.key_code == c.SAPP_KEYCODE_ESCAPE) {
+                c.sapp_quit();
+                return;
+            }
+            setButton(e.*.key_code, true);
+        },
+        c.SAPP_EVENTTYPE_KEY_UP => {
+            setButton(e.*.key_code, false);
+        },
+        else => {},
     }
 }
 

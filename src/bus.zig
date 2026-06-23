@@ -43,6 +43,7 @@
 
 const Rom = @import("rom.zig").Rom;
 const PPU = @import("ppu.zig").PPU;
+const Joypad = @import("joypad.zig").Joypad;
 
 const RAM_BEGIN: u16 = 0x0000;
 const RAM_END: u16 = 0x1FFF;
@@ -59,6 +60,8 @@ pub const Bus = struct {
 
     ppu: PPU = undefined,
     rom: Rom = undefined,
+
+    joypad: Joypad = Joypad{},
 
     cycles: u32 = 0,
 
@@ -123,6 +126,11 @@ pub const Bus = struct {
                 data = self.read8(address & 0x2007);
             },
 
+            // joypad
+            0x4016 => {
+                data = self.joypad.read();
+            },
+
             // ROM memory range
             PRG_ROM_BEGIN...PRG_ROM_END => {
                 data = self.readPrgRom(address);
@@ -166,6 +174,11 @@ pub const Bus = struct {
                     self.ppu.oam_data[self.ppu.oam_address] = self.read8(base + @as(u16, @intCast(i)));
                     self.ppu.oam_address +%= 1;
                 }
+            },
+
+            // joypad
+            0x4016 => {
+                self.joypad.write(data);
             },
 
             else => {},

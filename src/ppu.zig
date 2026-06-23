@@ -408,7 +408,7 @@ pub const PPU = struct {
                     },
 
                     else => {
-                        self.palette_table[address - 0x3f00] = value;
+                        self.palette_table[address - 0x3F00] = value;
                     },
                 }
             },
