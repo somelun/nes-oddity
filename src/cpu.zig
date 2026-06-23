@@ -1,5 +1,4 @@
 const std = @import("std");
-const AutoHashMap = std.AutoHashMap;
 
 const Bus = @import("bus.zig").Bus;
 const OpcodesAPI = @import("opcodes.zig");
@@ -87,29 +86,28 @@ pub const CPU = struct {
         const value: u8 = self.bus.read8(self.program_counter);
         self.program_counter +%= 1;
 
-        // these flags are unused in the emulation
+        // this flag is unused in the emulation
         self.setFlag(StatusFlag.U, true);
-        self.setFlag(StatusFlag.I, true);
 
-        const opcode: ?Opcode = opcodes[value];
-        if (opcode.?.length < 1) {
+        const opcode: Opcode = opcodes[value];
+        if (opcode.length < 1) {
             std.debug.print("Unsupported instruction! {X}\n", .{value});
             return 0;
         }
 
-        const addressing_mode: AddressingMode = opcode.?.addressing_mode;
+        const addressing_mode: AddressingMode = opcode.addressing_mode;
 
         self.handleOpcode(value, addressing_mode);
 
         // ticking BUS
-        self.bus.tick(opcode.?.cycles);
+        self.bus.tick(opcode.cycles);
 
         // in the end we increment program counter according to opcode length
         if (self.program_counter == initial_pc +% 1) {
-            self.program_counter +%= (opcode.?.length - 1);
+            self.program_counter +%= (opcode.length - 1);
         }
 
-        return opcode.?.length;
+        return opcode.length;
     }
 
     // returns address for the next operand using addressing mode,

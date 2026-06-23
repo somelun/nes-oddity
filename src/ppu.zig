@@ -82,11 +82,11 @@ pub const PPU = struct {
     pub fn init() PPU {
         var ppu = PPU{};
 
-        ppu.controllerRegister = ControllerRegister.init();
-        ppu.maskRegister = MaskRegister.init();
-        ppu.statusRegister = StatusRegister.init();
-        ppu.scrollRegister = ScrollRegister.init();
-        ppu.addressRegister = AddressRegister.init();
+        ppu.controllerRegister = ControllerRegister{};
+        ppu.maskRegister = MaskRegister{};
+        ppu.statusRegister = StatusRegister{};
+        ppu.scrollRegister = ScrollRegister{};
+        ppu.addressRegister = AddressRegister{};
 
         return ppu;
     }
@@ -99,7 +99,7 @@ pub const PPU = struct {
 
             if (self.scanline == 241) {
                 self.statusRegister.setVBlankStarted();
-                if (self.controllerRegister.isGenerateVBlanckNMI()) {
+                if (self.controllerRegister.isGenerateVBlankNMI()) {
                     return true;
                 }
             }
@@ -160,8 +160,8 @@ pub const PPU = struct {
             const tile_x: usize = self.oam_data[si + 3];
             const tile_y: usize = self.oam_data[si];
 
-            const flip_vertical = ((self.oam_data[si + 2] >> 7) & 1) == 1;
-            const flip_horizontal = ((self.oam_data[si + 2] >> 6) & 1) == 1;
+            const flip_vertical = ((self.oam_data[si + 2] >> 7) & 1) != 0;
+            const flip_horizontal = ((self.oam_data[si + 2] >> 6) & 1) != 0;
 
             const palette_idx = self.oam_data[si + 2] & 0b11;
             const sprite_palette_bytes = self.spritePalette(palette_idx);
@@ -245,15 +245,13 @@ pub const PPU = struct {
         if (start + 16 > self.chr_rom.len) return;
         const tile = self.chr_rom[start .. start + 16];
 
-        var y: u16 = 0;
-        while (y <= 7) : (y += 1) {
+        for (0..8) |row| {
+            const y: u16 = @intCast(row);
             var upper = tile[y];
             var lower = tile[y + 8];
 
-            var x: u16 = 8;
-            while (x > 0) {
-                x -= 1;
-
+            for (0..8) |col| {
+                const x: u16 = 7 - @as(u16, @intCast(col));
                 const value = ((1 & upper) << 1) | (1 & lower);
                 upper = upper >> 1;
                 lower = lower >> 1;
@@ -347,10 +345,10 @@ pub const PPU = struct {
         switch (address) {
             // write to controll register
             0x2000 => {
-                const prev_nmi = self.controllerRegister.isGenerateVBlanckNMI();
+                const prev_nmi = self.controllerRegister.isGenerateVBlankNMI();
                 self.controllerRegister.update(data);
 
-                const cur_nmi = self.controllerRegister.isGenerateVBlanckNMI();
+                const cur_nmi = self.controllerRegister.isGenerateVBlankNMI();
                 if (prev_nmi != cur_nmi) {
                     if (cur_nmi and self.statusRegister.isVBlankStarted()) {
                         self.nmi_pending = true;
@@ -499,14 +497,10 @@ const ControllerRegister = struct {
         BackgroundPatternAddress = (1 << 4),
         SpriteSize = (1 << 5),
         MasterSlaveSelect = (1 << 6),
-        GenerateVBlanckNMI = (1 << 7),
+        GenerateVBlankNMI = (1 << 7),
     };
 
     flags: u8 = 0,
-
-    pub fn init() ControllerRegister {
-        return ControllerRegister{};
-    }
 
     pub fn nametable(self: *ControllerRegister) u16 {
         const nametable_flag: u8 = (@intFromEnum(Flags.NametableLo) | @intFromEnum(Flags.NametableHi));
@@ -515,6 +509,7 @@ const ControllerRegister = struct {
             1 => return 0x2400,
             2 => return 0x2800,
             3 => return 0x2c00,
+            else => unreachable,
         }
     }
 
@@ -543,9 +538,10 @@ const ControllerRegister = struct {
     }
 
     pub fn spriteSize(self: *ControllerRegister) u8 {
-        switch (self.flags & @intFromEnum(Flags.SpritePatternTableAddress)) {
-            0 => return 8,
-            1 => return 16,
+        if (self.flags & @intFromEnum(Flags.SpriteSize) > 0) {
+            return 16;
+        } else {
+            return 8;
         }
     }
 
@@ -553,8 +549,8 @@ const ControllerRegister = struct {
         return (self.flags & @intFromEnum(Flags.MasterSlaveSelect)) > 0;
     }
 
-    pub fn isGenerateVBlanckNMI(self: *ControllerRegister) bool {
-        return (self.flags & @intFromEnum(Flags.GenerateVBlanckNMI)) > 0;
+    pub fn isGenerateVBlankNMI(self: *ControllerRegister) bool {
+        return (self.flags & @intFromEnum(Flags.GenerateVBlankNMI)) > 0;
     }
 
     pub fn update(self: *ControllerRegister, data: u8) void {
@@ -597,10 +593,6 @@ const MaskRegister = struct {
     };
 
     flags: u8 = 0,
-
-    pub fn init() MaskRegister {
-        return MaskRegister{};
-    }
 
     pub fn isGreyscale(self: *MaskRegister) bool {
         return (self.flags & @intFromEnum(Flags.Greyscale)) > 0;
@@ -671,10 +663,6 @@ const StatusRegister = struct {
 
     flags: u8 = 0,
 
-    pub fn init() StatusRegister {
-        return StatusRegister{};
-    }
-
     pub fn get(self: *StatusRegister) u8 {
         return self.flags;
     }
@@ -714,10 +702,6 @@ const ScrollRegister = struct {
     scroll_y: u8 = 0,
     latch: bool = false,
 
-    pub fn init() ScrollRegister {
-        return ScrollRegister{};
-    }
-
     pub fn update(self: *ScrollRegister, data: u8) void {
         if (self.latch) {
             self.scroll_y = data;
@@ -738,10 +722,6 @@ const AddressRegister = struct {
     hi_byte: u8 = 0,
     lo_byte: u8 = 0,
     using_hi: bool = true,
-
-    pub fn init() AddressRegister {
-        return AddressRegister{};
-    }
 
     pub fn set(self: *AddressRegister, data: u16) void {
         self.hi_byte = @intCast(data >> 8);

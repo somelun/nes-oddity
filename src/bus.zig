@@ -41,9 +41,6 @@
 // What is Zero Page? https://en.wikipedia.org/wiki/Zero_page
 //
 
-const std = @import("std");
-const mem = std.mem;
-
 const Rom = @import("rom.zig").Rom;
 const PPU = @import("ppu.zig").PPU;
 
@@ -192,7 +189,7 @@ pub const Bus = struct {
 
     fn loadProgram(self: *Bus, program_code: []const u8) void {
         const program_len = program_code.len;
-        mem.copy(u8, self.wram[0x0600 .. 0x0600 + program_len], program_code[0..program_len]);
+        @memcpy(self.wram[0x0600 .. 0x0600 + program_len], program_code[0..program_len]);
     }
 
     // PRG Rom Size might be 16 or 32 KiB, if 16 KiB, then upper bank
