@@ -47,13 +47,13 @@ pub const CPU = struct {
         self.program_counter = self.bus.read16(PC_ADDRESS);
     }
 
-    pub fn loadAndRun(self: *CPU, program_code: []const u8) void {
+    fn loadAndRun(self: *CPU, program_code: []const u8) void {
         self.load(program_code);
         self.reset();
         self.loop();
     }
 
-    pub fn load(self: *CPU, program_code: []const u8) void {
+    fn load(self: *CPU, program_code: []const u8) void {
         self.bus.loadProgram(program_code);
 
         // program counter is stored in memory at 0xFFFC

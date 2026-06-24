@@ -94,7 +94,7 @@ pub const Bus = struct {
         }
     }
 
-    pub fn reset(self: *Bus) void {
+    fn reset(self: *Bus) void {
         self.cycles = 0;
     }
 

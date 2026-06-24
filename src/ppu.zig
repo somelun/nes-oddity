@@ -118,7 +118,7 @@ pub const PPU = struct {
         return false;
     }
 
-    pub fn render(self: *PPU) void {
+    fn render(self: *PPU) void {
         const bank = self.controllerRegister.backgroundPatternAddress();
 
         // render background
@@ -203,7 +203,7 @@ pub const PPU = struct {
         }
     }
 
-    pub fn bgPalette(self: *PPU, tile_column: u16, tile_row: u16) [3]u8 {
+    fn bgPalette(self: *PPU, tile_column: u16, tile_row: u16) [3]u8 {
         const attr_table_idx = (tile_row / 4) * 8 + (tile_column / 4);
         const attr_byte = self.vram[0x3C0 + attr_table_idx];
 
@@ -236,7 +236,7 @@ pub const PPU = struct {
         };
     }
 
-    pub fn setPixel(self: *PPU, x: u16, y: u16, rgb: [3]u8) void {
+    fn setPixel(self: *PPU, x: u16, y: u16, rgb: [3]u8) void {
         if (x >= 256 or y >= 240) return;
         const index = (@as(usize, y) * 256 + x) * 3;
         self.frame_buffer[index] = rgb[0];
@@ -514,7 +514,7 @@ const ControllerRegister = struct {
 
     flags: u8 = 0,
 
-    pub fn nametable(self: *ControllerRegister) u16 {
+    fn nametable(self: *ControllerRegister) u16 {
         const nametable_flag: u8 = (@intFromEnum(Flags.NametableLo) | @intFromEnum(Flags.NametableHi));
         switch (self.flags & nametable_flag) {
             0 => return 0x2000,
@@ -525,7 +525,7 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
+    fn VRAMAddressIncrement(self: *ControllerRegister) u8 {
         if (self.flags & @intFromEnum(Flags.VRAMAddressIncrement) > 0) {
             return 32;
         } else {
@@ -533,7 +533,7 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn spritePatternTableAddress(self: *ControllerRegister) u16 {
+    fn spritePatternTableAddress(self: *ControllerRegister) u16 {
         if (self.flags & @intFromEnum(Flags.SpritePatternTableAddress) > 0) {
             return 0x1000;
         } else {
@@ -541,7 +541,7 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn backgroundPatternAddress(self: *ControllerRegister) u16 {
+    fn backgroundPatternAddress(self: *ControllerRegister) u16 {
         if (self.flags & @intFromEnum(Flags.BackgroundPatternAddress) > 0) {
             return 0x1000;
         } else {
@@ -549,7 +549,7 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn spriteSize(self: *ControllerRegister) u8 {
+    fn spriteSize(self: *ControllerRegister) u8 {
         if (self.flags & @intFromEnum(Flags.SpriteSize) > 0) {
             return 16;
         } else {
@@ -557,15 +557,15 @@ const ControllerRegister = struct {
         }
     }
 
-    pub fn isMasterSlaveSelect(self: *ControllerRegister) bool {
+    fn isMasterSlaveSelect(self: *ControllerRegister) bool {
         return (self.flags & @intFromEnum(Flags.MasterSlaveSelect)) > 0;
     }
 
-    pub fn isGenerateVBlankNMI(self: *ControllerRegister) bool {
+    fn isGenerateVBlankNMI(self: *ControllerRegister) bool {
         return (self.flags & @intFromEnum(Flags.GenerateVBlankNMI)) > 0;
     }
 
-    pub fn update(self: *ControllerRegister, data: u8) void {
+    fn update(self: *ControllerRegister, data: u8) void {
         self.flags = data;
     }
 };
@@ -606,27 +606,27 @@ const MaskRegister = struct {
 
     flags: u8 = 0,
 
-    pub fn isGreyscale(self: *MaskRegister) bool {
+    fn isGreyscale(self: *MaskRegister) bool {
         return (self.flags & @intFromEnum(Flags.Greyscale)) > 0;
     }
 
-    pub fn isShowBackgroungInLeftmost8(self: *MaskRegister) bool {
+    fn isShowBackgroungInLeftmost8(self: *MaskRegister) bool {
         return (self.flags & @intFromEnum(Flags.ShowBackgroungInLeftmost8)) > 0;
     }
 
-    pub fn isShowSpritesInLeftmost8(self: *MaskRegister) bool {
+    fn isShowSpritesInLeftmost8(self: *MaskRegister) bool {
         return (self.flags & @intFromEnum(Flags.ShowSpritesInLeftmost8)) > 0;
     }
 
-    pub fn isShowBackground(self: *MaskRegister) bool {
+    fn isShowBackground(self: *MaskRegister) bool {
         return (self.flags & @intFromEnum(Flags.ShowBackground)) > 0;
     }
 
-    pub fn isShowSprites(self: *MaskRegister) bool {
+    fn isShowSprites(self: *MaskRegister) bool {
         return (self.flags & @intFromEnum(Flags.ShowSprites)) > 0;
     }
 
-    pub fn update(self: *MaskRegister, data: u8) void {
+    fn update(self: *MaskRegister, data: u8) void {
         self.flags = data;
     }
 };
@@ -670,39 +670,39 @@ const StatusRegister = struct {
 
     flags: u8 = 0,
 
-    pub fn get(self: *StatusRegister) u8 {
+    fn get(self: *StatusRegister) u8 {
         return self.flags;
     }
 
-    pub fn setSpriteOverflow(self: *StatusRegister) void {
+    fn setSpriteOverflow(self: *StatusRegister) void {
         self.flags |= @intFromEnum(Flags.SpriteOverflow);
     }
 
-    pub fn setSpriteZeroHit(self: *StatusRegister) void {
+    fn setSpriteZeroHit(self: *StatusRegister) void {
         self.flags |= @intFromEnum(Flags.SpriteZeroHit);
     }
 
-    pub fn setVBlankStarted(self: *StatusRegister) void {
+    fn setVBlankStarted(self: *StatusRegister) void {
         self.flags |= @intFromEnum(Flags.VBlankStarted);
     }
 
-    pub fn isSpriteOverflow(self: *StatusRegister) bool {
+    fn isSpriteOverflow(self: *StatusRegister) bool {
         return (self.flags & @intFromEnum(Flags.SpriteOverflow)) > 0;
     }
 
-    pub fn isSpriteZeroHit(self: *StatusRegister) bool {
+    fn isSpriteZeroHit(self: *StatusRegister) bool {
         return (self.flags & @intFromEnum(Flags.SpriteZeroHit)) > 0;
     }
 
-    pub fn isVBlankStarted(self: *StatusRegister) bool {
+    fn isVBlankStarted(self: *StatusRegister) bool {
         return (self.flags & @intFromEnum(Flags.VBlankStarted)) > 0;
     }
 
-    pub fn clearVBlankStarted(self: *StatusRegister) void {
+    fn clearVBlankStarted(self: *StatusRegister) void {
         self.flags = self.flags & ~@intFromEnum(Flags.VBlankStarted);
     }
 
-    pub fn clearSpriteZeroHit(self: *StatusRegister) void {
+    fn clearSpriteZeroHit(self: *StatusRegister) void {
         self.flags = self.flags & ~@intFromEnum(Flags.SpriteZeroHit);
     }
 };
@@ -713,7 +713,7 @@ const ScrollRegister = struct {
     scroll_y: u8 = 0,
     latch: bool = false,
 
-    pub fn update(self: *ScrollRegister, data: u8) void {
+    fn update(self: *ScrollRegister, data: u8) void {
         if (self.latch) {
             self.scroll_y = data;
         } else {
@@ -723,7 +723,7 @@ const ScrollRegister = struct {
         self.latch = !self.latch;
     }
 
-    pub fn resetLatch(self: *ScrollRegister) void {
+    fn resetLatch(self: *ScrollRegister) void {
         self.latch = false;
     }
 };
@@ -734,16 +734,16 @@ const AddressRegister = struct {
     lo_byte: u8 = 0,
     using_hi: bool = true,
 
-    pub fn set(self: *AddressRegister, data: u16) void {
+    fn set(self: *AddressRegister, data: u16) void {
         self.hi_byte = @intCast(data >> 8);
         self.lo_byte = @intCast(data & 0xFF);
     }
 
-    pub fn get(self: *AddressRegister) u16 {
+    fn get(self: *AddressRegister) u16 {
         return (@as(u16, self.hi_byte) << 8) | @as(u16, self.lo_byte);
     }
 
-    pub fn update(self: *AddressRegister, data: u8) void {
+    fn update(self: *AddressRegister, data: u8) void {
         if (self.using_hi) {
             self.hi_byte = data;
         } else {
@@ -759,7 +759,7 @@ const AddressRegister = struct {
         self.using_hi = !self.using_hi;
     }
 
-    pub fn increment(self: *AddressRegister, inc: u8) void {
+    fn increment(self: *AddressRegister, inc: u8) void {
         const lo: u8 = self.lo_byte;
         self.lo_byte +%= inc;
         if (lo > self.lo_byte) {
@@ -773,7 +773,7 @@ const AddressRegister = struct {
         }
     }
 
-    pub fn resetLatch(self: *AddressRegister) void {
+    fn resetLatch(self: *AddressRegister) void {
         self.using_hi = true;
     }
 };
