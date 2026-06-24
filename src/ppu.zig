@@ -94,6 +94,10 @@ pub const PPU = struct {
     pub fn tick(self: *PPU, cycles: u8) bool {
         self.cycles += cycles;
         if (self.cycles >= 341) {
+            if (self.isSpriteZeroHit()) {
+                self.statusRegister.setSpriteZeroHit();
+            }
+
             self.cycles = self.cycles - 341;
             self.scanline += 1;
 
@@ -107,6 +111,7 @@ pub const PPU = struct {
             if (self.scanline >= 262) {
                 self.scanline = 0;
                 self.statusRegister.clearVBlankStarted();
+                self.statusRegister.clearSpriteZeroHit();
                 self.render();
             }
         }
@@ -237,6 +242,12 @@ pub const PPU = struct {
         self.frame_buffer[index] = rgb[0];
         self.frame_buffer[index + 1] = rgb[1];
         self.frame_buffer[index + 2] = rgb[2];
+    }
+
+    fn isSpriteZeroHit(self: *PPU) bool {
+        const y = self.oam_data[0];
+        const x = self.oam_data[3];
+        return (y == self.scanline) and (x <= self.cycles) and self.maskRegister.isShowSprites();
     }
 
     pub fn showTile(self: *PPU, bank: u8, tile_n: u8, offset_x: u16, offset_y: u16) void {
@@ -615,11 +626,6 @@ const MaskRegister = struct {
         return (self.flags & @intFromEnum(Flags.ShowSprites)) > 0;
     }
 
-    pub fn emphasize(self: *MaskRegister) void {
-        _ = self;
-        // but it should return color I suppose
-    }
-
     pub fn update(self: *MaskRegister, data: u8) void {
         self.flags = data;
     }
@@ -694,6 +700,10 @@ const StatusRegister = struct {
 
     pub fn clearVBlankStarted(self: *StatusRegister) void {
         self.flags = self.flags & ~@intFromEnum(Flags.VBlankStarted);
+    }
+
+    pub fn clearSpriteZeroHit(self: *StatusRegister) void {
+        self.flags = self.flags & ~@intFromEnum(Flags.SpriteZeroHit);
     }
 };
 
