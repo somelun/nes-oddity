@@ -26,6 +26,7 @@ const State = struct {
     cpu: CPU,
     rgba_buf: [SCREEN_W * SCREEN_H * 4]u8,
     frame_count: u32,
+    rom_loaded: bool,
 };
 
 var state: State = undefined;
@@ -137,11 +138,13 @@ export fn init() void {
         },
     });
 
+    state.rom_loaded = false;
     state.bus = Bus.init();
-    if (!state.bus.loadRom("roms/pacman.nes")) {
+    if (!state.bus.loadRom("roms/pacman1.nes")) {
         std.debug.print("failed to load rom\n", .{});
         return;
     }
+    state.rom_loaded = true;
     state.cpu = CPU.init(&state.bus);
     state.cpu.reset();
     state.frame_count = 0;
@@ -177,6 +180,7 @@ fn showAllTiles() void {
 }
 
 export fn frame() void {
+    if (!state.rom_loaded) return;
     if (GAME_LOOP) {
         const cycles_start = state.bus.cycles;
         while (state.bus.cycles - cycles_start < 29780) {

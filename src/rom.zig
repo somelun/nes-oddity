@@ -82,6 +82,7 @@ pub const Rom = struct {
                 ROMLoadError.InvalidFormat => std.debug.print("Invalid format: {s}\n", .{path}),
                 else => std.debug.print("Unknown error reading file: {s}\n", .{path}),
             }
+            return err;
         };
 
         return rom;
