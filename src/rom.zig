@@ -132,10 +132,10 @@ pub const Rom = struct {
             self.screen_mirroring = if (vertical_mirroring) Mirroring.Vertical else Mirroring.Horizontal;
         }
 
-        const prg_rom_size: u16 = self.prg_rom_banks_number * 16 * 1024;
-        const chr_rom_size: u16 = self.chr_rom_banks_number * 8 * 1024;
+        const prg_rom_size: u32 = @as(u32, self.prg_rom_banks_number) * 16 * 1024;
+        const chr_rom_size: u32 = @as(u32, self.chr_rom_banks_number) * 8 * 1024;
 
-        const prg_rom_start: u16 = if (trainer) 16 + 512 else 16;
+        const prg_rom_start: u32 = if (trainer) 16 + 512 else 16;
 
         const allocator = std.heap.page_allocator;
         self.prg_rom = try allocator.alloc(u8, prg_rom_size);
