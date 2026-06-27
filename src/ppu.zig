@@ -228,7 +228,7 @@ pub const PPU = struct {
             const start = bank + tile_idx * 16;
             const tile = self.chr_rom[start .. start + 16];
 
-            const palette = self.bgPalette(@intCast(tile_col), @intCast(tile_row));
+            const palette = self.bgPalette(nametable, @intCast(tile_col), @intCast(tile_row));
 
             for (0..8) |row| {
                 var lower = tile[row];
@@ -262,9 +262,9 @@ pub const PPU = struct {
         }
     }
 
-    fn bgPalette(self: *PPU, tile_column: u16, tile_row: u16) [3]u8 {
+    fn bgPalette(self: *PPU, nametable: []const u8, tile_column: u16, tile_row: u16) [3]u8 {
         const attr_table_idx = (tile_row / 4) * 8 + (tile_column / 4);
-        const attr_byte = self.vram[0x3C0 + attr_table_idx];
+        const attr_byte = nametable[0x3C0 + attr_table_idx];
 
         const col_bit = (tile_column % 4) / 2;
         const row_bit = (tile_row % 4) / 2;

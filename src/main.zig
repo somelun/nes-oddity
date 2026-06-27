@@ -140,7 +140,7 @@ export fn init() void {
 
     state.rom_loaded = false;
     state.bus = Bus.init();
-    if (!state.bus.loadRom("roms/pacman1.nes")) {
+    if (!state.bus.loadRom("roms/donkey_kong.nes")) {
         std.debug.print("failed to load rom\n", .{});
         return;
     }
