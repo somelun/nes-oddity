@@ -56,6 +56,14 @@ pub const SYSTEM_PALETTE: [64][3]u8 = .{
     .{ 0x99, 0xFF, 0xFC }, .{ 0xDD, 0xDD, 0xDD }, .{ 0x11, 0x11, 0x11 }, .{ 0x11, 0x11, 0x11 },
 };
 
+// rect used for mirroring
+const Rect = struct {
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+};
+
 pub const PPU = struct {
     chr_rom: []u8 = undefined, // visuals of the game, stored on a cartridge
     palette_table: [0x20]u8 = [_]u8{0} ** 0x20, // palette table used atm
@@ -119,42 +127,48 @@ pub const PPU = struct {
     }
 
     fn render(self: *PPU) void {
-        const bank = self.controllerRegister.backgroundPatternAddress();
+        // render background with scrolling
+        var first_nametable: []const u8 = undefined;
+        var second_nametable: []const u8 = undefined;
 
-        // render background
-        for (0..0x03c0) |i| {
-            const tile_idx = @as(u16, self.vram[i]);
-            const tile_x: u16 = @intCast(i % 32);
-            const tile_y: u16 = @intCast(i / 32);
-
-            const start = bank + tile_idx * 16;
-            const tile = self.chr_rom[start .. start + 16];
-
-            const palette = self.bgPalette(tile_x, tile_y);
-
-            for (0..8) |row| {
-                const y: u16 = @intCast(row);
-                var lower = tile[row];
-                var upper = tile[row + 8];
-
-                for (0..8) |col| {
-                    const x: u16 = 7 - @as(u16, @intCast(col));
-                    const value = (1 & upper) << 1 | (1 & lower);
-                    upper = upper >> 1;
-                    lower = lower >> 1;
-
-                    const rgb = switch (value) {
-                        0 => SYSTEM_PALETTE[self.palette_table[0]],
-                        1 => SYSTEM_PALETTE[palette[0]],
-                        2 => SYSTEM_PALETTE[palette[1]],
-                        3 => SYSTEM_PALETTE[palette[2]],
-                        else => unreachable,
-                    };
-
-                    self.setPixel(tile_x * 8 + x, tile_y * 8 + y, rgb);
+        switch (self.mirroring) {
+            .Vertical => {
+                switch (self.controllerRegister.nametable()) {
+                    0x2000, 0x2800 => {
+                        first_nametable = self.vram[0..0x400];
+                        second_nametable = self.vram[0x400..0x800];
+                    },
+                    0x2400, 0x2C00 => {
+                        first_nametable = self.vram[0x400..0x800];
+                        second_nametable = self.vram[0..0x400];
+                    },
+                    else => unreachable,
                 }
-            }
+            },
+            .Horizontal => {
+                switch (self.controllerRegister.nametable()) {
+                    0x2000, 0x2400 => {
+                        first_nametable = self.vram[0..0x400];
+                        second_nametable = self.vram[0x400..0x800];
+                    },
+                    0x2800, 0x2C00 => {
+                        first_nametable = self.vram[0x400..0x800];
+                        second_nametable = self.vram[0..0x400];
+                    },
+                    else => unreachable,
+                }
+            },
+            .FourScreen => {},
         }
+
+        const scroll_x: i32 = self.scrollRegister.scroll_x;
+        const scroll_y: i32 = self.scrollRegister.scroll_y;
+
+        // first part
+        self.renderNametable(first_nametable, Rect{ .x1 = scroll_x, .y1 = scroll_y, .x2 = 256, .y2 = 240 }, -scroll_x, -scroll_y);
+
+        // second part
+        self.renderNametable(second_nametable, Rect{ .x1 = 0, .y1 = 0, .x2 = scroll_x, .y2 = 240 }, 256 - scroll_x, 0);
 
         // render sprites (back to front)
         var si: usize = self.oam_data.len;
@@ -198,6 +212,51 @@ pub const PPU = struct {
                     const pixel_y: u16 = @intCast(if (flip_vertical) tile_y + 7 - row else tile_y + row);
 
                     self.setPixel(pixel_x, pixel_y, rgb);
+                }
+            }
+        }
+    }
+
+    fn renderNametable(self: *PPU, nametable: []const u8, viewport: Rect, shift_x: i32, shift_y: i32) void {
+        const bank = self.controllerRegister.backgroundPatternAddress();
+
+        for (0..0x03c0) |i| {
+            const tile_idx = @as(u16, nametable[i]);
+            const tile_col: i32 = @intCast(i % 32);
+            const tile_row: i32 = @intCast(i / 32);
+
+            const start = bank + tile_idx * 16;
+            const tile = self.chr_rom[start .. start + 16];
+
+            const palette = self.bgPalette(@intCast(tile_col), @intCast(tile_row));
+
+            for (0..8) |row| {
+                var lower = tile[row];
+                var upper = tile[row + 8];
+
+                for (0..8) |col| {
+                    const x: i32 = 7 - @as(i32, @intCast(col));
+                    const y: i32 = @intCast(row);
+                    const value = (1 & upper) << 1 | (1 & lower);
+                    upper = upper >> 1;
+                    lower = lower >> 1;
+
+                    const rgb = switch (value) {
+                        0 => SYSTEM_PALETTE[self.palette_table[0]],
+                        1 => SYSTEM_PALETTE[palette[0]],
+                        2 => SYSTEM_PALETTE[palette[1]],
+                        3 => SYSTEM_PALETTE[palette[2]],
+                        else => unreachable,
+                    };
+
+                    const pixel_x = tile_col * 8 + x;
+                    const pixel_y = tile_row * 8 + y;
+                    if (pixel_x < viewport.x1 or pixel_x >= viewport.x2) continue;
+                    if (pixel_y < viewport.y1 or pixel_y >= viewport.y2) continue;
+
+                    const screen_x: u16 = @intCast(pixel_x + shift_x);
+                    const screen_y: u16 = @intCast(pixel_y + shift_y);
+                    self.setPixel(screen_x, screen_y, rgb);
                 }
             }
         }
